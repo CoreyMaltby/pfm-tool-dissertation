@@ -6,7 +6,7 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="p-4 md:ml-64 md:pt-4 pt-20">
+        <main className="p-4 md:pt-20 pt-4 pb-24 md:pb-4">
           <Routes>
             <Route path="/" element={<h1 className="text-2xl font-bold">Home Page</h1>} />
             <Route path="/dashboard" element={<h1 className="text-2xl font-bold">Dashboard</h1>} />

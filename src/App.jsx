@@ -1,15 +1,16 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import Home from "./components/Home";
 
 function App() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-background-main">
         <Navbar />
-        <main className="flex-grow pt-20 px-4 max-w-7xl mx-auto w-full pb-10 transition-all duration-300">
+        <main className="flex-grow pt-16 w-full pb-10 transition-all duration-300">
           <Routes>
-            <Route path="/" element={<h1 className="text-2xl font-bold">Home Page</h1>} />
+            <Route path="/"/>
             <Route path="/dashboard" element={<h1 className="text-2xl font-bold">Dashboard</h1>} />
             <Route path="/learning-hub" element={<h1 className="text-2xl font-bold">Learning Hub</h1>} />
             <Route path="/support" element={<h1 className="text-2xl font-bold">Support</h1>} />
@@ -19,7 +20,7 @@ function App() {
             <Route path="/profile" element={<h1 className="text-2xl font-bold">Profile</h1>} />
           </Routes>
         </main>
-
+        <Home />
         <Footer />
       </div>
     </Router>

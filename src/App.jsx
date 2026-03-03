@@ -1,12 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-background-main">
         <Navbar />
-        <main className="p-4 md:pt-20 pt-4 pb-24 md:pb-4">
+        <main className="flex-grow pt-20 px-4 max-w-7xl mx-auto w-full pb-10 transition-all duration-300">
           <Routes>
             <Route path="/" element={<h1 className="text-2xl font-bold">Home Page</h1>} />
             <Route path="/dashboard" element={<h1 className="text-2xl font-bold">Dashboard</h1>} />
@@ -18,6 +19,8 @@ function App() {
             <Route path="/profile" element={<h1 className="text-2xl font-bold">Profile</h1>} />
           </Routes>
         </main>
+
+        <Footer />
       </div>
     </Router>
   );

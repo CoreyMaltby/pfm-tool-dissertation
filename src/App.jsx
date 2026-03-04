@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./components/Home";
+import LearningHub from "./components/LearningHub";
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<h1 className="text-2xl font-bold p-8">Dashboard</h1>}/>
-            <Route path="/learning-hub" element={<h1 className="text-2xl font-bold p-8">Learning Hub</h1>} />
+            <Route path="/learning-hub" element={<LearningHub />} />
             <Route path="/support" element={<h1 className="text-2xl font-bold p-8">Support</h1>} />
             <Route path="/privacy-security" element={<h1 className="text-2xl font-bold p-8">Privacy & Security</h1>} />
             <Route path="/login" element={<h1 className="text-2xl font-bold p-8">Login</h1>} />

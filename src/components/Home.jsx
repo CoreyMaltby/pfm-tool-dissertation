@@ -94,7 +94,7 @@ const Home = () => {
             {/* FEATURES SECTION: Key Features of the site
             Renders all the features from the features array as individual FeatureRow components. 
             Each feature has an icon, title, description and an image.*/}
-            <section className={`${uiTheme.section} gap-16`}>
+            <section className={`${uiTheme.section} gap-16 bg-background-main`}>
                 <h2 className={`${uiTheme.heading}`}>Why Use This?</h2>
                 <div className="max-w-5xl w-full flex flex-col gap-20">
                     {/* Displays each feature as a FeatureRow component */}

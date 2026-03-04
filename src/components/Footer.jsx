@@ -25,7 +25,7 @@ const footerLinks = {
 
 const Footer = () => {
     return (
-        <footer className="w-full bg-background-secondary text-text-main mt-auto border-t border-gray-700">
+        <footer className="w-full bg-background-secondary text-text-main mt-auto border-t-2 border-black">
             <div className="w-full px-6 md:px-12 py-8">
                 <div className="flex flex-col md:flex-row justify-between gap-8 md:gap-12">
 

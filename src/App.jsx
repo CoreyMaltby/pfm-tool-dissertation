@@ -4,12 +4,14 @@
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-// Layout components
+//Components
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import Home from "./components/Home";
-import LearningHub from "./components/LearningHub";
-import ArticleView from "./components/LearningHubPage";
+
+// Pages
+import Home from "./pages/Home";
+import LearningHub from "./pages/LearningHub";
+import ArticleView from "./pages/LearningHubPage";
 
 function App() {
   return (

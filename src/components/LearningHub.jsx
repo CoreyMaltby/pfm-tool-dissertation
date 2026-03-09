@@ -8,74 +8,15 @@ import React, { useState } from "react";
 import { Clock, ChevronRight, Search } from 'lucide-react';
 import { Link } from "react-router-dom";
 
+import { articles_data, categories } from "../constants/articles";
 
-const categories = ['All', 'Budgeting', 'Interest', 'Savings', 'Financial Planning', 'Security', 'Other'];
 
-// Sample resources data for the Learning Hub
-const articles = [
-    {
-        id: 1,
-        category: "Budgeting",
-        title: "Master the 50/30/20 Rule",
-        description: "A simple method to split your income into needs, wants, and savings—with tips to adapt it for irregular income.",
-        readTime: "4 min",
-    },
-    {
-        id: 2,
-        category: "Interest",
-        title: "Simple vs Compound Interest (With Examples)",
-        description: "Understand how interest is calculated on loans and savings, and why compounding accelerates growth over time.",
-        readTime: "5 min",
-    },
-    {
-        id: 3,
-        category: "Savings",
-        title: "Build an Emergency Fund Without Stress",
-        description: "How to pick a realistic target, automate contributions, and choose the right account to keep your money accessible.",
-        readTime: "4 min",
-    },
-    {
-        id: 4,
-        category: "Financial Planning",
-        title: "Your First Financial Plan: A Step‑By‑Step Checklist",
-        description: "Set clear goals, assess your income and risks, and create a simple action plan you can actually stick to.",
-        readTime: "6 min",
-    },
-    {
-        id: 5,
-        category: "Security",
-        title: "Stay Safe from Phishing & Banking Scams",
-        description: "Spot common red flags, lock down your accounts with 2FA, and handle suspicious messages the right way.",
-        readTime: "4 min",
-    },
-    {
-        id: 6,
-        category: "Other",
-        title: "Financial Literacy: The Essential Starter Kit",
-        description: "Key terms, must-know concepts, and a learning path to boost your confidence with money.",
-        readTime: "3 min",
-    },
-    {
-        id: 7,
-        category: "Budgeting",
-        title: "Zero‑Based Budgeting Made Easy",
-        description: "Give every pound a job, plug leaks, and prioritise what matters—perfect for students and first‑time budgeters.",
-        readTime: "5 min",
-    },
-    {
-        id: 8,
-        category: "Savings",
-        title: "Savings Buckets: Short‑, Mid‑, and Long‑Term Goals",
-        description: "Set up separate pots for travel, emergencies, and investments so you always know what’s funded—and what’s next.",
-        readTime: "4 min",
-    }
-];
 
 const LearningHub = () => {
     const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredArticles = articles.filter(article => {
+    const filteredArticles = articles_data.filter(article => {
         const matchesCategory = activeCategory === 'All' || article.category === activeCategory;
         const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             article.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -126,12 +67,18 @@ const LearningHub = () => {
                                 <div key={article.id} className="p-6 md:p-8 hover:bg-white/5 transition-colors group">
                                     <div className="space-y-4">
 
-                                        {/*Title, Category, and Read Time */}
+                                        {/*Title, Author Category, and Read Time */}
                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                                             <h3 className="text-xl font-bold text-white group-hover:text-accent-main transition-colors">
                                                 {article.title}
                                             </h3>
                                             <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest">
+                                                <div className="w-7 h-7 bg-accent-main rounded-full flex items-center justify-center text-white text-[9px] shadow-sm">
+                                                    {article.initials}
+                                                </div>
+                                                <span className="text-gray-300 normal-case tracking-normal text-xs font-semibold">
+                                                    {article.author}
+                                                </span>
                                                 <span className="text-accent-main bg-accent-main/10 px-2 py-0.5 rounded">
                                                     {article.category}
                                                 </span>

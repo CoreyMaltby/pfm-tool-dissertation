@@ -4,74 +4,16 @@
 
 import React from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ChevronLeft, Clock, Share2, Bookmark, Calendar } from 'lucide-react';
+import { ChevronLeft, Clock, Share2, Bookmark } from 'lucide-react';
 
-// Sample articles data (replace with actual data fetching in production)
-const articles = [
-    {
-        id: 1,
-        category: "Budgeting",
-        title: "Master the 50/30/20 Rule",
-        description: "A simple method to split your income into needs, wants, and savings—with tips to adapt it for irregular income.",
-        readTime: "4 min",
-    },
-    {
-        id: 2,
-        category: "Interest",
-        title: "Simple vs Compound Interest (With Examples)",
-        description: "Understand how interest is calculated on loans and savings, and why compounding accelerates growth over time.",
-        readTime: "5 min",
-    },
-    {
-        id: 3,
-        category: "Savings",
-        title: "Build an Emergency Fund Without Stress",
-        description: "How to pick a realistic target, automate contributions, and choose the right account to keep your money accessible.",
-        readTime: "4 min",
-    },
-    {
-        id: 4,
-        category: "Financial Planning",
-        title: "Your First Financial Plan: A Step‑By‑Step Checklist",
-        description: "Set clear goals, assess your income and risks, and create a simple action plan you can actually stick to.",
-        readTime: "6 min",
-    },
-    {
-        id: 5,
-        category: "Security",
-        title: "Stay Safe from Phishing & Banking Scams",
-        description: "Spot common red flags, lock down your accounts with 2FA, and handle suspicious messages the right way.",
-        readTime: "4 min",
-    },
-    {
-        id: 6,
-        category: "Other",
-        title: "Financial Literacy: The Essential Starter Kit",
-        description: "Key terms, must-know concepts, and a learning path to boost your confidence with money.",
-        readTime: "3 min",
-    },
-    {
-        id: 7,
-        category: "Budgeting",
-        title: "Zero‑Based Budgeting Made Easy",
-        description: "Give every pound a job, plug leaks, and prioritise what matters—perfect for students and first‑time budgeters.",
-        readTime: "5 min",
-    },
-    {
-        id: 8,
-        category: "Savings",
-        title: "Savings Buckets: Short‑, Mid‑, and Long‑Term Goals",
-        description: "Set up separate pots for travel, emergencies, and investments so you always know what’s funded—and what’s next.",
-        readTime: "4 min",
-    }
-];
+import { articles_data } from "../constants/articles";
 
 const ArticleView = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
     // Find Article by ID
-    const article = articles.find((article) => article.id === parseInt(id));
+    const article = articles_data.find((article) => article.id === parseInt(id));
 
     if (!article) {
         return (
@@ -109,8 +51,8 @@ const ArticleView = () => {
                 <article className="bg-background-secondary rounded-3xl shadow-2xl border border-white/5 overflow-hidden">
                     {/* Header Image */}
                     <div className="h-64 bg-white/5 flex items-center justify-center border-b border-white/5 overflow-hidden">
-                        <div className="text-white/10 font-black text-6xl uppercase tracking-tighter select-none">
-                            {article.category}
+                        <div className="text-white text-6xl uppercase tracking-tighter">
+                            {article.category} {/* TODO: Replace with image */}
                         </div>
                     </div>
 
@@ -146,10 +88,10 @@ const ArticleView = () => {
                         {/* Footer */}
                         <div className="pt-12 border-t border-gray-700 mt-12 flex items-center gap-4">
                             <div className="w-12 h-12 bg-accent-main rounded-full flex items-center justify-center font-bold text-white">
-                                AU
+                                {article.initials}
                             </div>
                             <div>
-                                <p className="text-white font-bold text-sm">Author Name</p>
+                                <p className="text-white font-bold text-sm">{article.author}</p>
                             </div>
                         </div>
                     </div>

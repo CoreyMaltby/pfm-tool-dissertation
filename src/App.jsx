@@ -9,7 +9,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./components/Home";
 import LearningHub from "./components/LearningHub";
-import ArticleView from "./components/LeanringHubPage";
+import ArticleView from "./components/LearningHubPage";
 
 function App() {
   return (

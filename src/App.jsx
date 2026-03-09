@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./components/Home";
 import LearningHub from "./components/LearningHub";
+import ArticleView from "./components/LeanringHubPage";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<h1 className="text-2xl font-bold p-8">Dashboard</h1>}/>
             <Route path="/learning-hub" element={<LearningHub />} />
+            <Route path="/learning-hub/:id" element={<ArticleView />} />
             <Route path="/support" element={<h1 className="text-2xl font-bold p-8">Support</h1>} />
             <Route path="/privacy-security" element={<h1 className="text-2xl font-bold p-8">Privacy & Security</h1>} />
             <Route path="/login" element={<h1 className="text-2xl font-bold p-8">Login</h1>} />

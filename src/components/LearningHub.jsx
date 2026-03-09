@@ -1,11 +1,12 @@
-{/** Learninghub Component 
+/** Learninghub Component 
 * Provides articles and guides to improve financial literacy
 * Gets the articles from the database and displays them in a card format. 
 * Users can filter by category and search for specific topics.
-*/}
+*/
 
 import React, { useState } from "react";
 import { Clock, ChevronRight, Search } from 'lucide-react';
+import { Link } from "react-router-dom";
 
 
 const categories = ['All', 'Budgeting', 'Interest', 'Savings', 'Financial Planning', 'Security', 'Other'];
@@ -148,9 +149,9 @@ const LearningHub = () => {
 
                                         {/* Article Link */}
                                         <div className="pt-2">
-                                            <button className="flex items-center gap-1 text-xs font-black uppercase tracking-tighter text-accent-main hover:text-white transition-colors">
+                                            <Link to={`/learning-hub/${article.id}`} className="flex items-center gap-1 text-xs font-black uppercase-tighter text-accent-main hover:text-white transition-colors">
                                                 Read Full Article <ChevronRight size={14} />
-                                            </button>
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>

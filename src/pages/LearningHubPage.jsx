@@ -88,7 +88,7 @@ const ArticleView = () => {
                         {/* Footer */}
                         <div className="pt-12 border-t border-gray-700 mt-12 flex items-center gap-4">
                             <div className="w-12 h-12 bg-accent-main rounded-full flex items-center justify-center font-bold text-white">
-                                {article.initials}
+                                {article.initials} // TODO: Replace with logic which gets this from authors name
                             </div>
                             <div>
                                 <p className="text-white font-bold text-sm">{article.author}</p>

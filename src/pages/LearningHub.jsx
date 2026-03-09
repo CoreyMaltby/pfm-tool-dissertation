@@ -74,7 +74,7 @@ const LearningHub = () => {
                                             </h3>
                                             <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest">
                                                 <div className="w-7 h-7 bg-accent-main rounded-full flex items-center justify-center text-white text-[9px] shadow-sm">
-                                                    {article.initials}
+                                                    {article.initials} // TODO: Replace with logic which gets this from authors name
                                                 </div>
                                                 <span className="text-gray-300 normal-case tracking-normal text-xs font-semibold">
                                                     {article.author}

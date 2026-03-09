@@ -12,6 +12,7 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import LearningHub from "./pages/LearningHub";
 import ArticleView from "./pages/LearningHubPage";
+import ProfileSettings from "./pages/Profile";
 
 function App() {
   return (
@@ -30,7 +31,7 @@ function App() {
             <Route path="/privacy-security" element={<h1 className="text-2xl font-bold p-8">Privacy & Security</h1>} />
             <Route path="/login" element={<h1 className="text-2xl font-bold p-8">Login</h1>} />
             <Route path="/signup" element={<h1 className="text-2xl font-bold p-8">Sign Up</h1>} />
-            <Route path="/profile" element={<h1 className="text-2xl font-bold p-8">Profile</h1>} />
+            <Route path="/profile" element={<ProfileSettings />} />
           </Routes>
         </main>
 

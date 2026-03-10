@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from "react"
-import { User, Lock, Bell, Trash2, Cloud, Save, Key } from "lucide-react"
+import { User, Lock, Bell, Trash2, Cloud, Save, Key, LayoutDashboard } from "lucide-react"
 
 const uiTheme = {
     transition: "transition-all duration-300 ease-in-out",
@@ -23,7 +23,7 @@ const AccountTab = () => {
         e.preventDefault();
         const confirmed = window.confirm("Are you sure you want to update your profile information?");
         if (confirmed) {
-            // Placeholder for Database Update logic
+            // TODO: Database logic
             console.log("Profile updated:", { firstName, secondName, email });
             alert("Profile successfully updated.");
         }
@@ -286,20 +286,78 @@ const NotificationsTab = () => {
     );
 };
 
+const DashboardTab = () => {
+    const [showSafeToSpend, setShowSafeToSpend] = useState(true);
+    const [showSavingsGoals, setShowSavingsGoals] = useState(true);
+
+    // Dashboard preferences save popup
+    const handleDashboardSave = () => {
+        if (window.confirm("Save dashboard display preferences?")) {
+            alert("Dashboard layout updated.");
+        }
+    };
+
+    return (
+        <div clasName="space-y-10">
+            {/* Header */}
+            <div>
+                <h3 className="text-xl font-bold text-white">Dashboard Display</h3>
+                <p className="text-gray-400 text-sm mt-1 mb-6 max-w-2xl">
+                    Customise which widgets are visible on your dashboard overview.
+                </p>
+
+                {/* Dsipaly Toggles */}
+                <div className="space-y-4 max-w-xl">
+                    <div className="flex items-center justify-between gap-4 p-5 bg-white/5 rounded-2xl border border-white/10">
+                        <div className="space-y-0.5">
+                            <span className="text-white font-semibold">Show Safe-to-Spend</span>
+                            <p className="text-xs text-gray-400">Display your daily spending allowance.</p>
+                        </div>
+                        <button onClick={() => setShowSafeToSpend(!showSafeToSpend)} className={`relative inline-flex h-6 w-11 rounded-full border-2 border-transparent transition-colors ${showSafeToSpend ? 'bg-accent-main' : 'bg-gray-700'}`}>
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${showSafeToSpend ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 p-5 bg-white/5 rounded-2xl border border-white/10">
+                        <div className="space-y-0.5">
+                            <span className="text-white font-semibold">Show Savings Goals</span>
+                            <p className="text-xs text-gray-400">Display progress bars for targets.</p>
+                        </div>
+                        <button onClick={() => setShowSavingsGoals(!showSavingsGoals)} className={`relative inline-flex h-6 w-11 rounded-full border-2 border-transparent transition-colors ${showSavingsGoals ? 'bg-accent-main' : 'bg-gray-700'}`}>
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${showSavingsGoals ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
+                    {/* Save */}
+                    <div className="pt-4 border-t border-white/5">
+                        <button onClick={handleDashboardSave} className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all border border-white/10">
+                            Save Dashboard View
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+};
+
+// Tab categories selection rendered in the sidebar
 const tab_data = [
     { name: "Account", icon: User, component: AccountTab },
     { name: "Security & Privacy", icon: Lock, component: SecurityTab },
     { name: "Notifications", icon: Bell, component: NotificationsTab },
+    { name: "Dashboard", icon: LayoutDashboard, component: DashboardTab },
 ];
 
 // Main Component
 const ProfileSettings = () => {
+    // State to manage active category
     const [activeTab, setActiveTab] = useState(tab_data[0].name);
 
     return (
         <main className="w-full bg-background-tertiary min-h-screen py-12 md:py-16 px-6">
             <div className="max-w-6xl mx-auto space-y-10">
 
+                {/* Header */}
                 <header className="text-center space-y-4">
                     <h1 className="text-4xl md:text-5xl font-black text-white leading-tight">Profile Settings</h1>
                     <p className="text-white/90 text-sm md:text-base max-w-xl mx-auto leading-relaxed">

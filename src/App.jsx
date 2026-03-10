@@ -16,6 +16,7 @@ import ProfileSettings from "./pages/Profile";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import PrivacySecurity from "./pages/PrivacySecurity";
+import Support from "./pages/Support"
 
 function App() {
   return (
@@ -30,7 +31,7 @@ function App() {
             <Route path="/dashboard" element={<h1 className="text-2xl font-bold p-8">Dashboard</h1>} />
             <Route path="/learning-hub" element={<LearningHub />} />
             <Route path="/learning-hub/:id" element={<ArticleView />} />
-            <Route path="/support" element={<h1 className="text-2xl font-bold p-8">Support</h1>} />
+            <Route path="/support" element={<Support />} />
             <Route path="/privacy-security" element={<PrivacySecurity />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

@@ -14,6 +14,8 @@ const ArticleView = () => {
 
     // Find Article by ID
     const article = articles_data.find((article) => article.id === parseInt(id));
+    // Returns to the hub
+    const handleBack = () => navigate(-1);
 
     if (!article) {
         return (
@@ -34,7 +36,7 @@ const ArticleView = () => {
 
                 {/* Navigation & Actions */}
                 <div className="flex items-center justify-between">
-                    <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-white/80 hover:text-white font-bold text-sm transition-colors">
+                    <button onClick={handleBack} className="flex items-center gap-2 text-white/80 hover:text-white font-bold text-sm transition-colors">
                         <ChevronLeft size={14} /> Return to Learning Hub
                     </button>
                     <div className="flex gap-4">

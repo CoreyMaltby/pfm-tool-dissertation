@@ -19,6 +19,7 @@ import PrivacySecurity from "./pages/PrivacySecurity";
 import Support from "./pages/Support"
 import DashboardOverview from "./pages/DashboardOverview"
 import DashboardSavings from "./pages/DashboardSavings.jsx";
+import DashboardInsights from "./pages/DashboardInsights.jsx"
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/profile" element={<ProfileSettings />} />
             <Route path="/dashboard/savings" element={<DashboardSavings />} />
+            <Route path="/dashboard/insights" element={<DashboardInsights />} />
           </Routes>
         </main>
 

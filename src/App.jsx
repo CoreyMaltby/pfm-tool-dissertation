@@ -18,6 +18,7 @@ import Signup from "./pages/Signup";
 import PrivacySecurity from "./pages/PrivacySecurity";
 import Support from "./pages/Support"
 import DashboardOverview from "./pages/DashboardOverview"
+import DashboardSavings from "./pages/DashboardSavings.jsx";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/profile" element={<ProfileSettings />} />
+            <Route path="/dashboard/savings" element={<DashboardSavings />} />
           </Routes>
         </main>
 

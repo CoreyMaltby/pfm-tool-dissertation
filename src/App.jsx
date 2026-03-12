@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import PrivacySecurity from "./pages/PrivacySecurity";
 import Support from "./pages/Support"
+import DashboardOverview from "./pages/DashboardOverview"
 
 function App() {
   return (
@@ -28,7 +29,7 @@ function App() {
         <main className="flex-grow pt-16 w-full transition-all duration-300">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<h1 className="text-2xl font-bold p-8">Dashboard</h1>} />
+            <Route path="/dashboard" element={<DashboardOverview />} />
             <Route path="/learning-hub" element={<LearningHub />} />
             <Route path="/learning-hub/:id" element={<ArticleView />} />
             <Route path="/support" element={<Support />} />

@@ -22,6 +22,7 @@ import DashboardSavings from "./pages/DashboardSavings.jsx";
 import DashboardInsights from "./pages/DashboardInsights.jsx"
 import DashboardBudgets from "./pages/DashboardBudgets.jsx";
 import DashboardTransactions from "./pages/DashboardTransactions.jsx";
+import DashboardNotifications from "./pages/DashboardNotifications.jsx";
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route path="/dashboard/insights" element={<DashboardInsights />} />
             <Route path="/dashboard/budgets" element={<DashboardBudgets />} />
             <Route path="/dashboard/transactions" element={<DashboardTransactions />} />
+            <Route path="/dashboard/notifications" element={<DashboardNotifications />} />
           </Routes>
         </main>
 

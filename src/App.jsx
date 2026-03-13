@@ -20,6 +20,7 @@ import Support from "./pages/Support"
 import DashboardOverview from "./pages/DashboardOverview"
 import DashboardSavings from "./pages/DashboardSavings.jsx";
 import DashboardInsights from "./pages/DashboardInsights.jsx"
+import DashboardBudgets from "./pages/DashboardBudgets.jsx";
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="/profile" element={<ProfileSettings />} />
             <Route path="/dashboard/savings" element={<DashboardSavings />} />
             <Route path="/dashboard/insights" element={<DashboardInsights />} />
+            <Route path="/dashboard/budgets" element={<DashboardBudgets />} />
           </Routes>
         </main>
 

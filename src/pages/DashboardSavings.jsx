@@ -14,7 +14,6 @@ const DashboardSavings = () => {
                 {/* Header Section */}
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-1">
-                        <p className="text-white/70 text-xs font-black uppercase tracking-widest">Growth</p>
                         <h1 className="text-3xl font-black text-white">Savings Goals</h1>
                     </div>
 

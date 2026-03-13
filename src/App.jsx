@@ -21,6 +21,7 @@ import DashboardOverview from "./pages/DashboardOverview"
 import DashboardSavings from "./pages/DashboardSavings.jsx";
 import DashboardInsights from "./pages/DashboardInsights.jsx"
 import DashboardBudgets from "./pages/DashboardBudgets.jsx";
+import DashboardTransactions from "./pages/DashboardTransactions.jsx";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             <Route path="/dashboard/savings" element={<DashboardSavings />} />
             <Route path="/dashboard/insights" element={<DashboardInsights />} />
             <Route path="/dashboard/budgets" element={<DashboardBudgets />} />
+            <Route path="/dashboard/transactions" element={<DashboardTransactions />} />
           </Routes>
         </main>
 

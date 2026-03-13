@@ -131,7 +131,6 @@ const DashboardOverview = () => {
                 {/* Header */}
                 <header className="flex justify-between items-end">
                     <div className="space-y-1">
-                        <p className="text-white/70 text-xs font-black uppercase tracking-widest">Financial Hub</p>
                         <h1 className="text-3xl font-black text-white leading-tight">Overview</h1>
                     </div>
                     <div className="hidden md:block text-right bg-black/10 px-6 py-3 rounded-2xl border border-white/5">

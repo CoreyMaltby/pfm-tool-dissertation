@@ -97,7 +97,7 @@ const DashboardTransactions = () => {
                         </div>
                     </div>
 
-                    {/* SPREADSHEET VIEW */}
+                    {/* Spreadsheet View */}
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>

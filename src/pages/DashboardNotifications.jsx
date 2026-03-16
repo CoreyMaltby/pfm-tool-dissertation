@@ -19,7 +19,7 @@ const DashboardNotifications = () => {
         }
     };
 
-    // -Sample data
+    // Sample data
     const [notifications, setNotifications] = useState([
         {
             id: "uuid-1",

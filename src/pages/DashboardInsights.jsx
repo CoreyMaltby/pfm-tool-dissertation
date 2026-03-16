@@ -97,7 +97,7 @@ const DashboardInsights = () => {
                                 </div>
                             </div>
 
-                            {/* TODO: Recharts/ChartJS Integration */}
+                            {/* TODO: Charts Integration */}
                             <div className="flex-1 mt-8 border border-dashed border-white/10 rounded-2xl flex items-center justify-center text-gray-500 font-bold uppercase tracking-widest text-[10px]">
                                 {selectedTemplate} Visualization Stage
                             </div>

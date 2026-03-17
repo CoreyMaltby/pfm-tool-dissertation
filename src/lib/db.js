@@ -14,6 +14,7 @@ db.version(1).stores({
   notifications: 'id, user_id, type, created_at'
 });
 
+// Helper to clear all local data (useful for a "Delete My Data" feature)
 export const clearLocalData = async () => {
   await db.transaction('rw', db.tables, async () => {
     await Promise.all(db.tables.map(table => table.clear()));

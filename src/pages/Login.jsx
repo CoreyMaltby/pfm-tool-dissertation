@@ -1,8 +1,8 @@
 // Login Component
-
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LogIn, Mail, Lock, ArrowRight } from "lucide-react";
+import { supabase } from "../lib/supabaseClient";
 
 const uiTheme = {
     input: "w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-main/20 focus:border-accent-main transistion-all text-sm shadow-sm",
@@ -12,27 +12,38 @@ const uiTheme = {
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // TODO: Database logic
-        console.log("Login attempt:", { email });
+        setLoading(true);
+
+        // Auth Call
+        const {data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (error) {
+            alert(error.message);
+            setLoading(false);
+        } else {
+            navigate("/dashboard");
+        }
     };
 
     return (
         <main className="w-full bg-background-tertiary min-h-screen flex items-center justify-center py-12 px-6">
             <div className="max-w-md w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 
-                {/* Header Branding */}
                 <div className="text-center space-y-2">
                     <h1 className="text-4xl font-black text-white">Login</h1>
                     <p className="text-white text-m">Welcome back!</p>
                 </div>
 
-                {/* Login Container */}
                 <div className="bg-background-secondary p-8 md:p-10 rounded-3xl shadow-2xl border border-white/5 overflow-hidden">
                     <form className="space-y-6" onSubmit={handleLogin}>
-                        {/* Email Field */}
                         <div className="space-y-1.5">
                             <label className="text-gray-300 text-xs font-semibold uppercase tracking-widest" htmlFor="email">Email Address</label>
                             <div className="relative">
@@ -49,7 +60,6 @@ const Login = () => {
                             </div>
                         </div>
 
-                        {/* Password Field */}
                         <div className="space-y-1.5">
                             <label className="text-gray-300 text-xs font-semibold uppercase tracking-widest" htmlFor="password">Password</label>
                             <div className="relative">
@@ -67,13 +77,24 @@ const Login = () => {
                         </div>
 
                         <div className="pt-2">
-                            <button type="submit" className={uiTheme.primaryAction}>
-                                <LogIn size={18} /> Login
+                            <button 
+                                type="submit" 
+                                disabled={loading}
+                                className={uiTheme.primaryAction}
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 size={18} className="animate-spin" /> Signing in...
+                                    </>
+                                ) : (
+                                    <>
+                                        <LogIn size={18} /> Login
+                                    </>
+                                )}
                             </button>
                         </div>
                     </form>
 
-                    {/* Footer Links */}
                     <div className="mt-8 pt-6 border-t border-gray-700 text-center">
                         <p className="text-gray-400 text-xs">
                             Don't have an account?{" "}

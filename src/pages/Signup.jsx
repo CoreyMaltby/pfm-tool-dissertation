@@ -1,8 +1,8 @@
 // Signup Component
-
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UserPlus, Mail, Lock, User, UserCheck } from "lucide-react";
+import { supabase } from "../lib/supabaseClient";
 
 const uiTheme = {
     input: "w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-main/20 focus:border-accent-main transition-all text-sm shadow-sm",
@@ -10,6 +10,8 @@ const uiTheme = {
 };
 
 const Signup = () => {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         firstName: "",
         secondName: "",
@@ -18,14 +20,35 @@ const Signup = () => {
         confirmPassword: ""
     });
 
-    const handleSignup = (e) => {
+    const handleSignup = async (e) => {
         e.preventDefault();
+
+        // Validate Password
         if (formData.password !== formData.confirmPassword) {
             alert("Passwords do not match.");
             return;
         }
-        //TODO: Database logic
-        console.log("Account created for:", formData.email);
+
+        // Auth Call
+        // Ensure these keys are all lowercase with underscores
+        const { data, error } = await supabase.auth.signUp({
+            email: formData.email,
+            password: formData.password,
+            options: {
+                data: {
+                    first_name: formData.firstName,
+                    last_name: formData.secondName,
+                }
+            }
+        });
+
+        if (error) {
+            alert(error.message);
+            setLoading(false);
+        } else {
+            alert("Signup Successfull! Please check your email for a verification link.")
+            navigate("/login");
+        }
     };
 
     return (

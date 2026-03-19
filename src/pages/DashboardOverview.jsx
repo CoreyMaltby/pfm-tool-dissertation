@@ -35,7 +35,7 @@ const TransactionList = ({ transactions, loading }) => {
 
     return (
         <div className="space-y-3">
-            {transactions.slice(0, 5).map((tx) => (
+            {transactions.slice(0, 10).map((tx) => (
                 <Link key={tx.id} to={`/dashboard/transactions/${tx.id}`} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors group">
                     <div className="flex gap-4 items-center">
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-accent-main font-bold">
@@ -62,9 +62,10 @@ const TransactionList = ({ transactions, loading }) => {
 };
 
 const BudgetCard = ({ budget }) => {
-    const percent = Math.min((budget.spent / budget.limit) * 100, 100);
-    const remaining = budget.limit - budget.spent;
-    const spentAmount = budget.spent || 0;
+    const limit = Number(budget.limit_amount) || 0;
+    const spent = Number(budget.spent) || 0;
+    const percent = Math.min((spent / limit) * 100, 100);
+    const remaining = limit - spent;
 
     return (
         <Link to={`/dashboard/budgets/${budget.id}`} className="block p-5 bg-white/5 rounded-2xl border border-white/5 space-y-3 hover:bg-white/10 transition-colors group">
@@ -75,7 +76,7 @@ const BudgetCard = ({ budget }) => {
                     </div>
                     <div>
                         <p className="text-white font-bold text-sm">{budget.category?.name || 'Budget'}</p>
-                        <p className="text-gray-500 text-[10px] font-bold">£{spentAmount.toFixed(0)} of £{budget.limit_amount}</p>
+                        <p className="text-gray-500 text-[10px] font-bold">£{spent.toFixed(0)} of £{limit}</p>
                     </div>
                 </div>
                 <ChevronRight size={16} className="text-gray-600 group-hover:text-white" />
@@ -86,7 +87,9 @@ const BudgetCard = ({ budget }) => {
                 </div>
                 <div className="flex justify-between text-[9px] font-black text-gray-500 uppercase">
                     <span>{Math.round(percent)}% Used</span>
-                    <span className={remaining < 0 ? 'text-red-400' : ''}>£{Math.abs(remaining).toFixed(0)} {remaining < 0 ? 'Over' : 'Left'}</span>
+                    <span className={remaining < 0 ? 'text-red-400' : ''}>
+                        {remaining < 0 ? `£${Math.abs(remaining).toFixed(0)} Over` : `£${remaining.toFixed(0)} Left`}
+                    </span>
                 </div>
             </div>
         </Link>
@@ -101,8 +104,7 @@ const DashboardOverview = ({ session }) => {
     const [cloudData, setCloudData] = useState({ transactions: [], budgets: [] });
     const userId = session?.user?.id;
 
-    // Querry for local mode
-    const localTransactions = useLiveQuery(() => userId ? db.transactions.where('user_id').equals(userId).reverse().limit(5).toArray() : [], [userId]);
+    const localTransactions = useLiveQuery(() => userId ? db.transactions.where('user_id').equals(userId).reverse().limit(10).toArray() : [], [userId]);
     const localBudgets = useLiveQuery(() => userId ? db.budgets.where('user_id').equals(userId).toArray() : [], [userId]);
 
     useEffect(() => {
@@ -117,6 +119,7 @@ const DashboardOverview = ({ session }) => {
                         dataService.fetchRecentTransactions(userId),
                         dataService.fetchBudgets(userId)
                     ]);
+                    console.log("Cloud Data Fetched:", { transactions: txs, budgets: budg });
                     setCloudData({ transactions: txs, budgets: budg });
                 } catch (err) {
                     console.error("Cloud fetch error:", err);
@@ -126,12 +129,10 @@ const DashboardOverview = ({ session }) => {
         loadData();
     }, [userId]);
 
-    // Choose which data source to display
     const transactions = storageMode === 'cloud' ? cloudData.transactions : (localTransactions || []);
     const budgets = storageMode === 'cloud' ? cloudData.budgets : (localBudgets || []);
     const isLoading = storageMode === 'loading';
 
-    // Safe to Spend Calculation
     const safeToSpend = useMemo(() => {
         if (!budgets.length) return 0;
         const totalLimit = budgets.reduce((acc, b) => acc + (Number(b.limit_amount) || 0), 0);
@@ -139,9 +140,8 @@ const DashboardOverview = ({ session }) => {
         const remaining = totalLimit - totalSpent;
 
         const now = new Date();
-        const today = now.getDate();
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const daysLeft = daysInMonth - today + 1;
+        const daysLeft = daysInMonth - now.getDate() + 1;
 
         return Math.max(0, remaining / daysLeft);
     }, [budgets]);

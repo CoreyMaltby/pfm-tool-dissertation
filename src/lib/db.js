@@ -2,11 +2,10 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('PFMDatabase');
 
-// Database Schema
-db.version(1).stores({
+db.version(2).stores({
   profiles: 'id, email',
   accounts: 'id, user_id, name, type',
-  transactions: 'id, account_id, category_id, merchant_id, created_at',
+  transactions: 'id, user_id, account_id, category_id, merchant_id, created_at',
   budgets: 'id, user_id, category_id',
   savings_goals: 'id, user_id, name',
   categories: 'id, user_id, name',
@@ -14,7 +13,7 @@ db.version(1).stores({
   notifications: 'id, user_id, type, created_at'
 });
 
-// Helper to clear all local data (useful for a "Delete My Data" feature)
+// Helper to clear all local data
 export const clearLocalData = async () => {
   await db.transaction('rw', db.tables, async () => {
     await Promise.all(db.tables.map(table => table.clear()));

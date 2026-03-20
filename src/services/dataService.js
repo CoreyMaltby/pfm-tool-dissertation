@@ -11,9 +11,16 @@ export const dataService = {
     },
 
     async updateStorageMode(userId, newMode) {
-        const { error } = await supabase.from('profiles').update({ storage_mode: newMode }).eq('id', userId);
+        const { error } = await supabase.from('profiles').update({
+            storage_mode: newMode,
+            last_synced_at: new Date().toISOString()
+        }).eq('id', userId);
         if (error) throw error;
-        return newMode
+        return newMode;
+    },
+
+    async updateLastSynced(userId) {
+        await supabase.from('profiles').update({ last_synced_at: new Date().toISOString() }).eq('id', userId);
     },
 
     // Data Migration
@@ -95,34 +102,44 @@ export const dataService = {
 
     async saveTransaction(transaction, userId) {
         const mode = await this.getStorageMode(userId);
+        let savedTx;
         if (mode === 'cloud') {
             const { data, error } = await supabase.from('transactions').insert([{ ...transaction }]).select();
             if (error) throw error;
-            return data[0];
+            savedTx = data[0];
         } else {
-            const id = await db.transaction.add({ ...transaction, user_id: userId });
-            return { ...transaction, id, user_id: userId }
+            const id = await db.transactions.add({ ...transaction, user_id: userId });
+            savedTx = { ...transaction, id, user_id: userId };
         }
+        // Update Balance
+        await this.adjustAccountBalance(transaction.account_id, transaction.amount, userId);
+        return savedTx;
     },
 
-    async deleteTransaction(transactionId, userId) {
+    async deleteTransaction(transaction, userId) {
         const mode = await this.getStorageMode(userId);
         if (mode === 'cloud') {
-            const { error } = await supabase.from('transactions').delete().eq('id', transactionId);
+            const { error } = await supabase.from('transactions').delete().eq('id', transaction.id);
             if (error) throw error;
         } else {
-            await db.transaction.delete(transactionId);
+            await db.transactions.delete(transaction.id);
         }
+        // Update Balance
+        await this.adjustAccountBalance(transaction.account_id, -transaction.amount, userId);
     },
 
-    async updateTransaction(transaction, userId) {
+    async updateTransaction(newTx, oldTx, userId) {
         const mode = await this.getStorageMode(userId);
         if (mode === 'cloud') {
-            const { error } = await supabase.from('transactions').update(transaction).eq('id', transaction.id);
+            const { error } = await supabase.from('transactions').update(newTx).eq('id', newTx.id);
             if (error) throw error;
         } else {
-            await db.transactions.put({ ...transaction, user_id: userId });
+            await db.transactions.put({ ...newTx, user_id: userId });
         }
+
+        // Update Balance
+        const difference = Number(newTx.amount) - Number(oldTx.amount);
+        await this.adjustAccountBalance(newTx.account_id, difference, userId);
     },
 
     // Budgets
@@ -276,6 +293,21 @@ export const dataService = {
         }
     },
 
+    async adjustAccountBalance(accountId, amountChange, userId) {
+        const mode = await this.getStorageMode(userId);
+        if (mode === 'cloud') {
+            const { data: account } = await supabase.from('accounts').select('current_balance').eq('id', accountId).single();
+            const newBalance = Number(account.current_balance) + Number(amountChange);
+            await supabase.from('accounts').update({ current_balance: newBalance }).eq('id', accountId);
+        } else {
+            const account = await db.account.get(accountId);
+            if (account) {
+                const newBalance = Number(account.current_balance) + Number(amountChange);
+                await db.accounts.update(accountId, { current_balance: newBalance });
+            }
+        }
+    },
+
     // Categories
     async fetchCategories(userId) {
         const mode = await this.getStorageMode(userId);
@@ -322,7 +354,6 @@ export const dataService = {
 
     // Merchants
     async fetchMerchants() {
-        // Merchants are global for this app's logic
         const { data } = await supabase.from('merchants').select('*');
         return data || [];
     },
@@ -338,4 +369,23 @@ export const dataService = {
             return { ...merchant, id };
         }
     },
+
+    async updateMerchant(merchant, userId) {
+        const mode = await this.getStorageMode(userId);
+        if (mode === 'cloud') {
+            await supabase.from('merchants').update(merchant).eq('id', merchant.id);
+        } else {
+            await db.merchants.put(merchant);
+        }
+    },
+
+    async deleteMerchant(merchantId, userId) {
+        const mode = await this.getStorageMode(userId);
+        if (mode === 'cloud') {
+            await supabase.from('merchants').delete().eq('id', merchantId);
+        } else {
+            await db.merchants.delete(merchantId);
+        }
+    }
+
 };

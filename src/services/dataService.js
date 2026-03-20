@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { db } from '../lib/db';
+import { use } from 'react';
 
 export const dataService = {
     // Storage Preferences
@@ -155,6 +156,33 @@ export const dataService = {
         // Update Balance
         const difference = Number(newTx.amount) - Number(oldTx.amount);
         await this.adjustAccountBalance(newTx.account_id, difference, userId);
+    },
+
+    async fetchAllTransactions(userId) {
+        const mode = await this.getStorageMode(userId);
+
+        if (mode === 'cloud') {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select(`
+                    *,
+                    category:categories(name, icon),
+                    merchant:merchants(name),
+                    accounts!inner(user_id)
+                `)
+                .eq('accounts.user_id', userId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } else {
+            const txs = await db.transactions.where('user_id').equals(userId).reverse().toArray();
+            return await Promise.all(txs.map(async (tx) => {
+                const category = await db.categories.get(tx.category_id);
+                const merchant = await db.merchants.get(tx.merchant_id);
+                return { ...tx, category, merchant };
+            }));
+        }
     },
 
     // Budgets
@@ -315,7 +343,7 @@ export const dataService = {
             const newBalance = Number(account.current_balance) + Number(amountChange);
             await supabase.from('accounts').update({ current_balance: newBalance }).eq('id', accountId);
         } else {
-            const account = await db.account.get(accountId);
+            const account = await db.accounts.get(accountId);
             if (account) {
                 const newBalance = Number(account.current_balance) + Number(amountChange);
                 await db.accounts.update(accountId, { current_balance: newBalance });

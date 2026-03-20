@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { data, Link } from "react-router-dom";
 import DashboardSidebar from "../components/DashboardSidebar";
 import { TrendingUp, PieChart, Home, Car, ShoppingBag, Utensils, Plus, ChevronRight, BarChart3, Clock, ArrowUpRight } from 'lucide-react';
 import { useLiveQuery } from "dexie-react-hooks";
@@ -28,10 +28,7 @@ const GraphContainer = ({ mode, data }) => (
 
 const TransactionList = ({ transactions, loading }) => {
     if (loading) return <div className="p-10 text-center text-gray-500 text-xs font-bold animate-pulse">Fetching records...</div>;
-
-    if (!transactions || transactions.length === 0) {
-        return <div className="p-10 text-center text-gray-500 text-xs font-bold uppercase">No Recent Activity</div>;
-    }
+    if (!transactions || transactions.length === 0) return <div className="p-10 text-center text-gray-500 text-xs font-bold uppercase">No Recent Activity</div>;
 
     return (
         <div className="space-y-3">
@@ -39,7 +36,6 @@ const TransactionList = ({ transactions, loading }) => {
                 <Link key={tx.id} to={`/dashboard/transactions/${tx.id}`} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors group">
                     <div className="flex gap-4 items-center">
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-accent-main font-bold">
-                            {/* Display category name or fallback icon */}
                             {tx.category?.name?.charAt(0) || <Clock size={16} />}
                         </div>
                         <div>
@@ -97,36 +93,38 @@ const BudgetCard = ({ budget }) => {
 };
 
 // Main Page
-
 const DashboardOverview = ({ session }) => {
     const [chartMode, setChartMode] = useState('spend');
     const [storageMode, setStorageMode] = useState('loading');
     const [cloudData, setCloudData] = useState({ transactions: [], budgets: [] });
     const userId = session?.user?.id;
 
+    // Local Queries
     const localTransactions = useLiveQuery(() => userId ? db.transactions.where('user_id').equals(userId).reverse().limit(10).toArray() : [], [userId]);
     const localBudgets = useLiveQuery(() => userId ? db.budgets.where('user_id').equals(userId).toArray() : [], [userId]);
 
-    useEffect(() => {
-        const loadData = async () => {
-            if (!userId) return;
+    const refreshData = async () => {
+        if (!userId) return;
+        try {
             const mode = await dataService.getStorageMode(userId);
             setStorageMode(mode);
 
             if (mode === 'cloud') {
-                try {
-                    const [txs, budg] = await Promise.all([
-                        dataService.fetchRecentTransactions(userId),
-                        dataService.fetchBudgets(userId)
-                    ]);
-                    console.log("Cloud Data Fetched:", { transactions: txs, budgets: budg });
-                    setCloudData({ transactions: txs, budgets: budg });
-                } catch (err) {
-                    console.error("Cloud fetch error:", err);
-                }
+                const [txs, budg] = await Promise.all([
+                    dataService.fetchRecentTransactions(userId),
+                    dataService.fetchBudgets(userId)
+                ]);
+                console.log("Cloud Data Fetched:", { transactions: txs, budgets: budg });
+                setCloudData({ transactions: txs, budgets: budg });
             }
-        };
-        loadData();
+        } catch (err) {
+            console.error("Fetch error:", err);
+        }
+    };
+
+    // Initial load
+    useEffect(() => {
+        refreshData();
     }, [userId]);
 
     const transactions = storageMode === 'cloud' ? cloudData.transactions : (localTransactions || []);
@@ -140,8 +138,9 @@ const DashboardOverview = ({ session }) => {
         const remaining = totalLimit - totalSpent;
 
         const now = new Date();
+        const today = now.getDate();
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const daysLeft = daysInMonth - now.getDate() + 1;
+        const daysLeft = daysInMonth - today + 1;
 
         return Math.max(0, remaining / daysLeft);
     }, [budgets]);
@@ -157,6 +156,7 @@ const DashboardOverview = ({ session }) => {
                             Storage: <span className={storageMode === 'cloud' ? 'text-accent-main' : 'text-green-400'}>{storageMode}</span>
                         </p>
                     </div>
+
                     <div className="hidden md:block text-right bg-black/10 px-6 py-3 rounded-2xl border border-white/5">
                         <p className="text-white/50 text-[10px] font-black uppercase tracking-widest">Safe to Spend</p>
                         <p className="text-2xl font-black text-accent-main">
@@ -186,7 +186,15 @@ const DashboardOverview = ({ session }) => {
                     <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 space-y-6">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-white">Recent Activity</h2>
-                            <Link to="/dashboard/transactions" className="text-[10px] font-black text-accent-main flex items-center gap-1">History <ArrowUpRight size={14} /></Link>
+                            <div className="flex items-center gap-4">
+                                {/*Link to Transactions Page */}
+                                <Link to="/dashboard/transactions" className="p-2 bg-accent-main/10 text-accent-main rounded-lg hover:bg-accent-main hover:text-white transition-all">
+                                    <Plus size={16} />
+                                </Link>
+                                <Link to="/dashboard/transactions" className="text-[10px] font-black text-accent-main flex items-center gap-1 uppercase tracking-widest hover:text-white transition-colors">
+                                    History <ArrowUpRight size={14} />
+                                </Link>
+                            </div>
                         </div>
                         <TransactionList transactions={transactions} loading={isLoading} />
                     </section>
@@ -194,7 +202,7 @@ const DashboardOverview = ({ session }) => {
                     <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 space-y-6">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-white">Budgets</h2>
-                            <Link to="/dashboard/budgets" className="p-2 bg-accent-main/10 text-accent-main rounded-lg"><Plus size={16} /></Link>
+                            <Link to="/dashboard/budgets" className="p-2 bg-accent-main/10 text-accent-main rounded-lg hover:bg-accent-main hover:text-white transition-all"><Plus size={16} /></Link>
                         </div>
                         <div className="space-y-4">
                             {budgets.length > 0 ? budgets.map(b => <BudgetCard key={b.id} budget={b} />) : <p className="text-center text-gray-600 py-10 text-xs font-bold uppercase">No Active Budgets</p>}

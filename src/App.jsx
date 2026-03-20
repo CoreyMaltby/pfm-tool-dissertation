@@ -68,13 +68,12 @@ function App() {
 
             {/* Protected Routes */}
             <Route path="/profile" element={session ? <ProfileSettings /> : <Navigate to="/login" />} />
-
-            <Route path="/dashboard" element={session ? <DashboardOverview /> : <Navigate to="/login" />} />
-            <Route path="/dashboard/savings" element={session ? <DashboardSavings /> : <Navigate to="/login" />} />
-            <Route path="/dashboard/insights" element={session ? <DashboardInsights /> : <Navigate to="/login" />} />
-            <Route path="/dashboard/budgets" element={session ? <DashboardBudgets /> : <Navigate to="/login" />} />
-            <Route path="/dashboard/transactions" element={session ? <DashboardTransactions /> : <Navigate to="/login" />} />
-            <Route path="/dashboard/notifications" element={session ? <DashboardNotifications /> : <Navigate to="/login" />} />
+            <Route path="/dashboard" element={session ? <DashboardOverview session={session} /> : <Navigate to="/login" />} />
+            <Route path="/dashboard/savings" element={session ? <DashboardSavings session={session} /> : <Navigate to="/login" />} />
+            <Route path="/dashboard/insights" element={session ? <DashboardInsights session={session} /> : <Navigate to="/login" />} />
+            <Route path="/dashboard/budgets" element={session ? <DashboardBudgets session={session} /> : <Navigate to="/login" />} />
+            <Route path="/dashboard/transactions" element={session ? <DashboardTransactions session={session} /> : <Navigate to="/login" />} />
+            <Route path="/dashboard/notifications" element={session ? <DashboardNotifications session={session} /> : <Navigate to="/login" />} />
 
             {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/" />} />

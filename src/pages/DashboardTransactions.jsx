@@ -12,7 +12,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
 import { dataService } from "../services/dataService";
-import AddTransactionForm from "../components/AddTransactionForm";
+import AddTransactionForm from "../components/addTransactionForm";
 
 const ICON_MAP = {
     Utensils, Car, Smartphone, ShoppingBag,

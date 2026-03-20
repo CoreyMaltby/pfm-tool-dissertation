@@ -169,8 +169,8 @@ export const dataService = {
                     *,
                     category:categories(name, icon),
                     merchant:merchants(name),
-                    accounts!inner(user_id)
-                `)
+                    account:accounts(name) 
+                    `)
                 .eq('accounts.user_id', userId)
                 .order('created_at', { ascending: false });
 

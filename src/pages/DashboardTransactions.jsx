@@ -4,10 +4,10 @@
 
 import React, { useEffect, useState } from "react";
 import DashboardSidebar from "../components/DashboardSidebar";
-import { 
-    Plus, Upload, Search, Download, MoreHorizontal, 
-    Utensils, Car, Smartphone, ShoppingBag, Wallet, 
-    Home, CreditCard, Coffee, Zap, TrendingUp, Loader2 
+import {
+    Plus, Upload, Search, Download, MoreHorizontal,
+    Utensils, Car, Smartphone, ShoppingBag, Wallet,
+    Home, CreditCard, Coffee, Zap, TrendingUp, Loader2
 } from 'lucide-react';
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
@@ -26,23 +26,28 @@ const DashboardTransactions = ({ session }) => {
     const [cloudTransactions, setCloudTransactions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const userId = session?.user?.id;
-    
-    // Pagination state
+
+    // Page number state
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    // --- HYDRATED LOCAL QUERY ---
-    // This resolves merchant_id and category_id into full objects for Dexie
+    // Local querry
     const localTransactions = useLiveQuery(async () => {
         if (!userId) return [];
-        const txs = await db.transactions.where('user_id').equals(userId).reverse().toArray();
-        
+
+        const txs = await db.transactions
+            .where('user_id')
+            .equals(userId)
+            .reverse()
+            .toArray();
+
         return await Promise.all(txs.map(async (tx) => {
-            const [category, merchant] = await Promise.all([
+            const [category, merchant, account] = await Promise.all([
                 db.categories.get(tx.category_id),
-                db.merchants.get(tx.merchant_id)
+                db.merchants.get(tx.merchant_id),
+                db.accounts.get(tx.account_id)
             ]);
-            return { ...tx, category, merchant };
+            return { ...tx, category, merchant, account };
         }));
     }, [userId]);
 
@@ -70,7 +75,7 @@ const DashboardTransactions = ({ session }) => {
 
     const transactions = storageMode === 'cloud' ? cloudTransactions : (localTransactions || []);
 
-    // --- PAGINATION CALCULATIONS ---
+    // Page number calculation
     const totalPages = Math.ceil(transactions.length / itemsPerPage);
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -78,7 +83,7 @@ const DashboardTransactions = ({ session }) => {
 
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const getCategoryStyle = (categoryName) => {
@@ -126,65 +131,72 @@ const DashboardTransactions = ({ session }) => {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-black/20 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-gray-700">
-                                    <th className="px-8 py-5">Date</th>
-                                    <th className="px-8 py-5">Merchant</th>
-                                    <th className="px-8 py-5">Account</th>
-                                    <th className="px-8 py-5">Category</th>
-                                    <th className="px-8 py-5 text-right">Amount</th>
-                                    <th className="px-8 py-5 text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-700">
-                                {isLoading ? (
-                                    <tr><td colSpan="6" className="py-20 text-center"><Loader2 className="animate-spin text-accent-main mx-auto" size={32} /></td></tr>
-                                ) : transactions.length === 0 ? (
-                                    <tr><td colSpan="6" className="py-20 text-center text-gray-500 font-bold uppercase text-xs">No records found</td></tr>
-                                ) : currentTransactions.map((tx) => {
-                                    const style = getCategoryStyle(tx.category?.name);
-                                    const CategoryIcon = ICON_MAP[tx.category?.icon] || Wallet;
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-black/20 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 border-b border-gray-700">
+                                        <th className="px-8 py-5">Date</th>
+                                        <th className="px-8 py-5">Merchant</th>
+                                        <th className="px-8 py-5">Description</th>
+                                        <th className="px-8 py-5">Account</th>
+                                        <th className="px-8 py-5">Category</th>
+                                        <th className="px-8 py-5 text-right">Amount</th>
+                                        <th className="px-8 py-5 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-700">
+                                    {isLoading ? (
+                                        <tr><td colSpan="7" className="py-20 text-center"><Loader2 className="animate-spin text-accent-main mx-auto" size={32} /></td></tr>
+                                    ) : transactions.length === 0 ? (
+                                        <tr><td colSpan="7" className="py-20 text-center text-gray-500 font-bold uppercase text-xs">No records found</td></tr>
+                                    ) : currentTransactions.map((tx) => {
+                                        const style = getCategoryStyle(tx.category?.name);
+                                        const CategoryIcon = ICON_MAP[tx.category?.icon] || Wallet;
 
-                                    return (
-                                        <tr key={tx.id} className="hover:bg-white/[0.03] transition-colors group">
-                                            <td className="px-8 py-6 text-sm text-gray-400 whitespace-nowrap">
-                                                {new Date(tx.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-8 py-6 font-bold text-white group-hover:text-accent-main transition-colors">
-                                                {tx.merchant?.name || tx.description}
-                                            </td>
-                                            <td className="px-8 py-6 text-xs text-gray-400 font-semibold uppercase">
-                                                {tx.account?.name || 'Main Account'}
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${style.bg} ${style.border} ${style.color} text-[10px] font-black uppercase`}>
-                                                    <CategoryIcon size={12} />
-                                                    {tx.category?.name || 'Uncategorized'}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-6 text-right font-black">
-                                                <span className={tx.amount < 0 ? 'text-white' : 'text-accent-main'}>
-                                                    {tx.amount < 0 ? `-£${Math.abs(tx.amount).toFixed(2)}` : `+£${tx.amount.toFixed(2)}`}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-6 text-center">
-                                                <button className="p-2 text-gray-600 hover:text-white rounded-lg"><MoreHorizontal size={18} /></button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                        return (
+                                            <tr key={tx.id} className="hover:bg-white/[0.03] transition-colors group">
+                                                <td className="px-8 py-6 text-sm text-white whitespace-nowrap">
+                                                    {new Date(tx.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-8 py-6 font-bold text-white group-hover:text-accent-main transition-colors">
+                                                    {tx.merchant?.name || 'General Merchant'}
+                                                </td>
+                                                <td className="px-8 py-6 text-sm text-white italic max-w-xs truncate">
+                                                    {tx.description || '-'}
+                                                </td>
+                                                <td className="px-8 py-6 text-xs text-white font-semibold uppercase whitespace-nowrap">
+                                                    {tx.account?.name || 'Main Account'}
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${style.bg} ${style.border} ${style.color} text-[10px] font-black uppercase`}>
+                                                        <CategoryIcon size={12} />
+                                                        {tx.category?.name || 'Uncategorized'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6 text-right font-black whitespace-nowrap">
+                                                    <span className={tx.amount < 0 ? 'text-white' : 'text-accent-main'}>
+                                                        {tx.amount < 0 ? `-£${Math.abs(tx.amount).toFixed(2)}` : `+£${tx.amount.toFixed(2)}`}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6 text-center">
+                                                    <button className="p-2 text-gray-600 hover:text-white rounded-lg">
+                                                        <MoreHorizontal size={18} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    {/* PAGINATION FOOTER */}
                     <div className="p-6 bg-black/10 border-t border-gray-700 flex justify-between items-center">
                         <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">
                             Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, transactions.length)} of {transactions.length} Records
                         </p>
                         <div className="flex items-center gap-6">
-                            <button 
+                            <button
                                 onClick={() => handlePageChange(currentPage - 1)}
                                 disabled={currentPage === 1}
                                 className="text-[10px] font-black uppercase text-gray-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -194,7 +206,7 @@ const DashboardTransactions = ({ session }) => {
                             <span className="text-[10px] font-black text-accent-main bg-accent-main/10 px-3 py-1 rounded-md">
                                 Page {currentPage} of {totalPages || 1}
                             </span>
-                            <button 
+                            <button
                                 onClick={() => handlePageChange(currentPage + 1)}
                                 disabled={currentPage === totalPages || totalPages === 0}
                                 className="text-[10px] font-black uppercase text-accent-main hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"

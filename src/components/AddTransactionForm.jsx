@@ -9,7 +9,7 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
     const [merchants, setMerchants] = useState([]);
     
     const [type, setType] = useState('expense');
-    const [merchantInput, setMerchantInput] = useState(""); // Track the text the user types
+    const [merchantInput, setMerchantInput] = useState("");
 
     const [formData, setFormData] = useState({
         amount: "",
@@ -41,9 +41,7 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
         try {
             let finalMerchantId = null;
 
-            // --- SMART MERCHANT LOGIC ---
             if (merchantInput.trim() !== "") {
-                // Check if the typed name matches an existing merchant (case insensitive)
                 const existing = merchants.find(m => 
                     m.name.toLowerCase() === merchantInput.toLowerCase()
                 );
@@ -51,7 +49,6 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
                 if (existing) {
                     finalMerchantId = existing.id;
                 } else {
-                    // It's a new merchant - create it first
                     const newMerc = await dataService.addMerchant({ name: merchantInput }, userId);
                     finalMerchantId = newMerc.id;
                 }
@@ -62,7 +59,7 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
 
             const transactionData = {
                 amount: finalAmount,
-                description: formData.description || merchantInput, // Fallback to merchant name if description is empty
+                description: formData.description || merchantInput,
                 account_id: formData.account_id,
                 category_id: formData.category_id,
                 merchant_id: finalMerchantId,
@@ -118,7 +115,6 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
                         </div>
                     </div>
 
-                    {/* NEW UNIFIED MERCHANT INPUT */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
                             <Store size={12} /> Merchant

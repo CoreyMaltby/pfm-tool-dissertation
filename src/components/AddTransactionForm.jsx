@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Loader2, ChevronDown, PoundSterling, CreditCard, Tag, Store, AlignLeft, Plus, ArrowUpRight, ArrowDownRight, Wallet } from "lucide-react";
+import { X, Loader2, ChevronDown, PoundSterling, CreditCard, Tag, Store, AlignLeft, Plus, ArrowUpRight, ArrowDownRight, Wallet, Calendar } from "lucide-react";
 import { dataService } from "../services/dataService";
 
 const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
@@ -16,6 +16,7 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
         amount: "",
         description: "",
         account_id: "",
+        date: new Date().toISOString().split('T')[0]
     });
 
     useEffect(() => {
@@ -43,35 +44,23 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
         }
 
         setLoading(true);
-
         try {
             let finalMerchantId = null;
             let finalCategoryId = null;
 
-            // Merchant Logic
             if (merchantInput.trim() !== "") {
-                const existingMerc = merchants.find(m => 
-                    m.name.toLowerCase() === merchantInput.toLowerCase()
-                );
-                if (existingMerc) {
-                    finalMerchantId = existingMerc.id;
-                } else {
+                const existingMerc = merchants.find(m => m.name.toLowerCase() === merchantInput.toLowerCase());
+                if (existingMerc) finalMerchantId = existingMerc.id;
+                else {
                     const newMerc = await dataService.addMerchant({ name: merchantInput }, userId);
                     finalMerchantId = newMerc.id;
                 }
             }
 
-            // Category Logic
-            const existingCat = categories.find(c => 
-                c.name.toLowerCase() === categoryInput.toLowerCase()
-            );
-            if (existingCat) {
-                finalCategoryId = existingCat.id;
-            } else {
-                const newCat = await dataService.addCategory({ 
-                    name: categoryInput, 
-                    icon: 'Wallet' 
-                }, userId);
+            const existingCat = categories.find(c => c.name.toLowerCase() === categoryInput.toLowerCase());
+            if (existingCat) finalCategoryId = existingCat.id;
+            else {
+                const newCat = await dataService.addCategory({ name: categoryInput, icon: 'Wallet' }, userId);
                 finalCategoryId = newCat.id;
             }
 
@@ -84,15 +73,13 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
                 account_id: formData.account_id,
                 category_id: finalCategoryId,
                 merchant_id: finalMerchantId,
-                created_at: new Date().toISOString()
+                created_at: new Date(formData.date).toISOString()
             };
 
             await dataService.saveTransaction(transactionData, userId);
-            
             onSuccess();
             onClose();
-            
-            setFormData({ amount: "", description: "", account_id: "" });
+            setFormData({ amount: "", description: "", account_id: "", date: new Date().toISOString().split('T')[0] });
             setMerchantInput("");
             setCategoryInput("");
         } catch (error) {
@@ -115,68 +102,69 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
                     </button>
                 </div>
 
-                <div className="flex p-1 bg-black/40 rounded-2xl border border-white/5">
-                    <button type="button" onClick={() => setType('expense')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${type === 'expense' ? 'bg-red-500 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>
-                        <ArrowDownRight size={14} /> Expense
-                    </button>
-                    <button type="button" onClick={() => setType('income')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${type === 'income' ? 'bg-accent-main text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>
-                        <ArrowUpRight size={14} /> Income
-                    </button>
-                </div>
-
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-1 space-y-2">
+                    {/* Amount & Date Row */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col space-y-2">
                             <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1">Amount</label>
-                            <input required type="number" step="0.01" className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-5 py-4 text-lg font-black text-white focus:border-accent-main outline-none transition-all" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
+                            <input required type="number" step="0.01" className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
                         </div>
-                        <div className="md:col-span-2 space-y-2">
-                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1">Description</label>
-                            <input className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-5 py-4 text-sm font-bold text-white focus:border-accent-main outline-none transition-all" placeholder="e.g. Lunch" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
+                                <Calendar size={12} /> Date
+                            </label>
+                            <input required type="date" className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none [color-scheme:dark]" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
                         </div>
                     </div>
 
-                    {/* Searchable Merchant */}
+                    {/* Description */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1">Description</label>
+                        <input className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" placeholder="What was this for?" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                    </div>
+
+                    {/* Merchant */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
                             <Store size={12} /> Merchant
                         </label>
-                        <input 
-                            list="merchant-list"
-                            placeholder="Type to search or add merchant..."
-                            className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none transition-all"
-                            value={merchantInput}
-                            onChange={(e) => setMerchantInput(e.target.value)}
-                        />
+                        <input list="merchant-list" placeholder="Search or add merchant..." className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" value={merchantInput} onChange={(e) => setMerchantInput(e.target.value)} />
                         <datalist id="merchant-list">
                             {merchants.map(m => <option key={m.id} value={m.name} />)}
                         </datalist>
                     </div>
 
+                    {/* Account & Category Row*/}
                     <div className="grid grid-cols-2 gap-4">
-                        {/* Account Select */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1">Account</label>
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
+                                <CreditCard size={12} /> Account
+                            </label>
                             <div className="relative">
-                                <select required className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-5 py-4 text-xs font-bold text-white appearance-none focus:border-accent-main outline-none" value={formData.account_id} onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}>
-                                    <option value="">Select Account</option>
-                                    {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                <select 
+                                    required 
+                                    className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white appearance-none focus:border-accent-main outline-none cursor-pointer" 
+                                    value={formData.account_id} 
+                                    onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
+                                >
+                                    <option value="">Select</option>
+                                    {accounts.map(acc => <option key={acc.id} value={acc.id} className="bg-[#1a1a1a]">{acc.name}</option>)}
                                 </select>
                                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" size={14} />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="flex flex-col space-y-2">
                             <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
                                 <Tag size={12} /> Category
                             </label>
                             <input 
-                                required
-                                list="category-list"
-                                placeholder="Search or add..."
-                                className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:border-accent-main outline-none transition-all"
-                                value={categoryInput}
-                                onChange={(e) => setCategoryInput(e.target.value)}
+                                required 
+                                list="category-list" 
+                                placeholder="Search/Add..." 
+                                className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" 
+                                value={categoryInput} 
+                                onChange={(e) => setCategoryInput(e.target.value)} 
                             />
                             <datalist id="category-list">
                                 {categories.map(c => <option key={c.id} value={c.name} />)}
@@ -188,9 +176,7 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
                         disabled={loading}
                         className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 shadow-xl ${type === 'expense' ? 'bg-white text-black hover:bg-gray-200' : 'bg-accent-main text-white hover:bg-accent-secondary'}`}
                     >
-                        {loading ? <Loader2 className="animate-spin" size={18} /> : (
-                            <>Confirm {type} <Plus size={18} /></>
-                        )}
+                        {loading ? <Loader2 className="animate-spin" size={18} /> : <>Confirm {type} <Plus size={18} /></>}
                     </button>
                 </form>
             </div>

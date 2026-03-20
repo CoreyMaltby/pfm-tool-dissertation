@@ -26,10 +26,11 @@ export const dataService = {
         const offlineTxs = await db.transactions.where('synced').equals(0).toArray();
         if (offlineTxs.length > 0) {
             const { error } = await supabase.from('transactions').upsert(
-                offlineTxs.map(({ synced, ...tx }) => tx)
+                offlineTxs.map(({ synced, updated_at, ...tx }) => tx)
             );
             if (!error) {
                 await db.transactions.where('id').anyOf(offlineTxs.map(t => t.id)).modify({ synced: 1 });
+                await this.updateLastSynced(userId);
             }
         }
     },
@@ -188,29 +189,19 @@ export const dataService = {
     // Budgets
     async fetchBudgets(userId) {
         const mode = await this.getStorageMode(userId);
-
-        // Helper to sum up spending for a specific category
-        const calculateSpent = (txs, catId) =>
-            txs.filter(t => t.category_id === catId && t.amount < 0)
-                .reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0);
+        const calculateSpent = (txs, catId) => txs.filter(t => t.category_id === catId && t.amount < 0).reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0);
 
         if (mode === 'cloud') {
-            // Fetch budgets and transactions together to calculate spending
             const [budgetsRes, txsRes] = await Promise.all([
                 supabase.from('budgets').select('*, category:categories(name, icon)').eq('user_id', userId),
                 supabase.from('transactions').select('amount, category_id, accounts!inner(user_id)').eq('accounts.user_id', userId)
             ]);
-
-            return (budgetsRes.data || []).map(b => ({
-                ...b,
-                spent: calculateSpent(txsRes.data || [], b.category_id)
-            }));
+            return (budgetsRes.data || []).map(b => ({ ...b, spent: calculateSpent(txsRes.data || [], b.category_id) }));
         } else {
             const [budgets, txs] = await Promise.all([
                 db.budgets.where('user_id').equals(userId).toArray(),
                 db.transactions.where('user_id').equals(userId).toArray()
             ]);
-
             return await Promise.all(budgets.map(async (b) => {
                 const category = await db.categories.get(b.category_id);
                 return { ...b, category, spent: calculateSpent(txs, b.category_id) };
@@ -304,15 +295,20 @@ export const dataService = {
         }
     },
 
-    async saveAccount(account, userId) {
+    async adjustAccountBalance(accountId, amountChange, userId) {
         const mode = await this.getStorageMode(userId);
         if (mode === 'cloud') {
-            const { data, error } = await supabase.from('accounts').upsert({ ...account, user_id: userId }).select();
-            if (error) throw error;
-            return data[0];
+            const { data: account } = await supabase.from('accounts').select('current_balance').eq('id', accountId).single();
+            if (account) {
+                const newBalance = Number(account.current_balance) + Number(amountChange);
+                await supabase.from('accounts').update({ current_balance: newBalance }).eq('id', accountId);
+            }
         } else {
-            const id = await db.accounts.put({ ...account, user_id: userId });
-            return { ...account, id, user_id: userId };
+            const account = await db.accounts.get(accountId);
+            if (account) {
+                const newBalance = Number(account.current_balance) + Number(amountChange);
+                await db.accounts.update(accountId, { current_balance: newBalance });
+            }
         }
     },
 
@@ -336,26 +332,10 @@ export const dataService = {
         }
     },
 
-    async adjustAccountBalance(accountId, amountChange, userId) {
-        const mode = await this.getStorageMode(userId);
-        if (mode === 'cloud') {
-            const { data: account } = await supabase.from('accounts').select('current_balance').eq('id', accountId).single();
-            const newBalance = Number(account.current_balance) + Number(amountChange);
-            await supabase.from('accounts').update({ current_balance: newBalance }).eq('id', accountId);
-        } else {
-            const account = await db.accounts.get(accountId);
-            if (account) {
-                const newBalance = Number(account.current_balance) + Number(amountChange);
-                await db.accounts.update(accountId, { current_balance: newBalance });
-            }
-        }
-    },
-
     // Categories
     async fetchCategories(userId) {
         const mode = await this.getStorageMode(userId);
         if (mode === 'cloud') {
-            // Fetch global (null user_id) and user-specific categories
             const { data } = await supabase.from('categories').select('*').or(`user_id.eq.${userId},user_id.is.null`);
             return data || [];
         } else {
@@ -398,7 +378,9 @@ export const dataService = {
     // Merchants
     async fetchMerchants() {
         const { data } = await supabase.from('merchants').select('*');
-        return data || [];
+        const cloudMerchants = data || [];
+        const localMerchants = await db.merchants.toArray();
+        return [...cloudMerchants, ...localMerchants];
     },
 
     async addMerchant(merchant, userId) {

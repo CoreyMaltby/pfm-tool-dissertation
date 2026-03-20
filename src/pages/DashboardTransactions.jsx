@@ -4,7 +4,11 @@
 
 import React, { useEffect, useState } from "react";
 import DashboardSidebar from "../components/DashboardSidebar";
-import { Plus, Upload, Search, Download, MoreHorizontal, Utensils, Car, Smartphone, ShoppingBag, Wallet, Home, CreditCard, Coffee, Zap, TrendingUp, Loader2 } from 'lucide-react';
+import { 
+    Plus, Upload, Search, Download, MoreHorizontal, 
+    Utensils, Car, Smartphone, ShoppingBag, Wallet, 
+    Home, CreditCard, Coffee, Zap, TrendingUp, Loader2 
+} from 'lucide-react';
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
 import { dataService } from "../services/dataService";
@@ -13,7 +17,7 @@ import AddTransactionForm from "../components/AddTransactionForm";
 const ICON_MAP = {
     Utensils, Car, Smartphone, ShoppingBag,
     Wallet, Home, CreditCard, Coffee, Zap, TrendingUp
-}
+};
 
 const DashboardTransactions = ({ session }) => {
     const [filterRange, setFilterRange] = useState('Month');
@@ -23,13 +27,24 @@ const DashboardTransactions = ({ session }) => {
     const [isLoading, setIsLoading] = useState(true);
     const userId = session?.user?.id;
     
-    // Page state
+    // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    // Local query
-    const localTransactions = useLiveQuery(() => 
-        userId ? db.transactions.where('user_id').equals(userId).reverse().toArray() : [], [userId]);
+    // --- HYDRATED LOCAL QUERY ---
+    // This resolves merchant_id and category_id into full objects for Dexie
+    const localTransactions = useLiveQuery(async () => {
+        if (!userId) return [];
+        const txs = await db.transactions.where('user_id').equals(userId).reverse().toArray();
+        
+        return await Promise.all(txs.map(async (tx) => {
+            const [category, merchant] = await Promise.all([
+                db.categories.get(tx.category_id),
+                db.merchants.get(tx.merchant_id)
+            ]);
+            return { ...tx, category, merchant };
+        }));
+    }, [userId]);
 
     const fetchTransactions = async () => {
         if (!userId) return;
@@ -55,7 +70,7 @@ const DashboardTransactions = ({ session }) => {
 
     const transactions = storageMode === 'cloud' ? cloudTransactions : (localTransactions || []);
 
-    // Page number calculations
+    // --- PAGINATION CALCULATIONS ---
     const totalPages = Math.ceil(transactions.length / itemsPerPage);
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -64,7 +79,7 @@ const DashboardTransactions = ({ session }) => {
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
         window.scrollTo({top: 0, behavior: 'smooth'});
-    }
+    };
 
     const getCategoryStyle = (categoryName) => {
         const styles = {
@@ -85,7 +100,7 @@ const DashboardTransactions = ({ session }) => {
             <main className="flex-1 p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-black text-white">Transactions</h1>
+                        <h1 className="text-3xl font-black text-white leading-tight">Transactions</h1>
                         <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
                             Storage: <span className={storageMode === 'cloud' ? 'text-accent-main' : 'text-green-400'}>{storageMode}</span>
                         </p>
@@ -103,7 +118,6 @@ const DashboardTransactions = ({ session }) => {
                 </header>
 
                 <section className="bg-background-secondary rounded-3xl shadow-2xl border border-white/5 overflow-hidden">
-                    {/* Toolbar */}
                     <div className="p-6 bg-black/10 border-b border-gray-700 flex flex-col lg:flex-row justify-between gap-4">
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
@@ -164,6 +178,7 @@ const DashboardTransactions = ({ session }) => {
                         </table>
                     </div>
 
+                    {/* PAGINATION FOOTER */}
                     <div className="p-6 bg-black/10 border-t border-gray-700 flex justify-between items-center">
                         <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">
                             Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, transactions.length)} of {transactions.length} Records

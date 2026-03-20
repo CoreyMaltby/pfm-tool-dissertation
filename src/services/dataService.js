@@ -1,7 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
 import { db } from '../lib/db';
-import { use } from 'react';
-import { defaultExternalConditions } from 'vite';
 
 export const dataService = {
     // Storage Preferences
@@ -21,6 +19,18 @@ export const dataService = {
 
     async updateLastSynced(userId) {
         await supabase.from('profiles').update({ last_synced_at: new Date().toISOString() }).eq('id', userId);
+    },
+
+    async syncOfflineChanges(userId) {
+        const offlineTxs = await db.transactions.where('synced').equals(0).toArray();
+        if (offlineTxs.length > 0) {
+            const { error } = await supabase.from('transactions').upsert(
+                offlineTxs.map(({ synced, ...tx }) => tx)
+            );
+            if (!error) {
+                await db.transactions.where('id').anyOf(offlineTxs.map(t => t.id)).modify({ synced: 1 });
+            }
+        }
     },
 
     // Data Migration
@@ -102,18 +112,23 @@ export const dataService = {
 
     async saveTransaction(transaction, userId) {
         const mode = await this.getStorageMode(userId);
-        let savedTx;
-        if (mode === 'cloud') {
+        const isOnline = navigator.onLine;
+
+        if (mode === 'cloud' && isOnline) {
             const { data, error } = await supabase.from('transactions').insert([{ ...transaction }]).select();
             if (error) throw error;
-            savedTx = data[0];
+            await db.transactions.put({ ...data[0], synced: 1, updated_at: new Date().toISOString() });
+            return data[0];
         } else {
-            const id = await db.transactions.add({ ...transaction, user_id: userId });
-            savedTx = { ...transaction, id, user_id: userId };
+            const txData = {
+                ...transaction,
+                user_id: userId,
+                synced: mode === 'cloud' ? 0 : 1,
+                updated_at: new Date().toISOString()
+            };
+            const id = await db.transactions.put(txData);
+            return { ...txData, id };
         }
-        // Update Balance
-        await this.adjustAccountBalance(transaction.account_id, transaction.amount, userId);
-        return savedTx;
     },
 
     async deleteTransaction(transaction, userId) {

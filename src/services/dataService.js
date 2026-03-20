@@ -84,7 +84,7 @@ export const dataService = {
                 .limit(10);
             return data || [];
         } else {
-            const txs = await db.transactions.where('user_id').equals(userId).reverse().limit(5).toArray();
+            const txs = await db.transactions.where('user_id').equals(userId).reverse().limit(10).toArray();
             return await Promise.all(txs.map(async (tx) => {
                 const category = await db.categories.get(tx.category_id);
                 const merchant = await db.merchants.get(tx.merchant_id);
@@ -161,7 +161,7 @@ export const dataService = {
     async saveBudget(budget, userId) {
         const mode = await this.getStorageMode(userId);
         if (mode === 'cloud') {
-            const { data, error } = await supabase.from('budgets').upsert({ ...budgets, user_id: userId }).select();
+            const { data, error } = await supabase.from('budgets').upsert({ ...budget, user_id: userId }).select();
             if (error) throw error;
             return data[0];
         } else {

@@ -41,7 +41,11 @@ const DashboardBudgets = ({ session }) => {
         fetchBudgets();
     }, [userId]);
 
-    const totalAllocated = budgets.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    const totalAllocated = budgets.reduce((acc, curr) => {
+        const limit = Number(curr.amount) || Number(curr.limit_amount) || 0;
+        return acc + limit;
+    }, 0);
+
     const totalSpent = budgets.reduce((acc, curr) => acc + (Number(curr.spent) || 0), 0);
 
     const utilisationPercent = totalAllocated > 0
@@ -56,8 +60,8 @@ const DashboardBudgets = ({ session }) => {
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black text-white tracking-tight">Manage Budgets</h1>
-                        <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em]">
-                            Mode: <span className={storageMode === 'cloud' ? 'text-accent-main' : 'text-green-400'}>{storageMode}</span>
+                        <p className="text-white text-[10px] font-bold uppercase tracking-[0.2em]">
+                            Storage: <span className={storageMode === 'cloud' ? 'text-white' : 'text-white'}>{storageMode}</span>
                         </p>
                     </div>
 
@@ -99,8 +103,9 @@ const DashboardBudgets = ({ session }) => {
                                     </div>
                                 ) : budgets.map((budget) => {
                                     const Icon = icon_map[budget.category?.icon] || Wallet;
+
                                     const cardSpent = Number(budget.spent) || 0;
-                                    const cardLimit = Number(budget.amount) || 0;
+                                    const cardLimit = Number(budget.amount) || Number(budget.limit_amount) || 0;
                                     const cardPercent = cardLimit > 0 ? Math.min((cardSpent / cardLimit) * 100, 100) : 0;
 
                                     return (
@@ -112,10 +117,13 @@ const DashboardBudgets = ({ session }) => {
                                                     </div>
                                                     <div>
                                                         <h3 className="text-white font-bold">{budget.category?.name || 'Category'}</h3>
-                                                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Limit: £{cardLimit.toFixed(2)}</p>
+                                                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">
+                                                            Limit: £{cardLimit.toFixed(2)}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                                <button className="p-2 text-gray-600 hover:text-white transition-colors">
+                                                <button className="p-2 text-gray-300 bg-white/10 hover:bg-white/20 hover:text-white rounded-lg transition-all border border-white/5"
+                                                >
                                                     <Settings2 size={18} />
                                                 </button>
                                             </div>
@@ -129,7 +137,7 @@ const DashboardBudgets = ({ session }) => {
                                                 </div>
                                                 <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
                                                     <div
-                                                        className={`h-full transition-all duration-700 ${cardPercent > 90 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-accent-main shadow-[0_0_8px_rgba(30,255,188,0.3)]'}`}
+                                                        className={`h-full transition-all duration-700 ${cardPercent > 90 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-accent-main'}`}
                                                         style={{ width: `${cardPercent}%` }}
                                                     ></div>
                                                 </div>
@@ -153,8 +161,8 @@ const DashboardBudgets = ({ session }) => {
                                     <p className="text-[10px] text-gray-500 font-black uppercase mt-1 tracking-widest">Total Monthly Allowance</p>
                                 </div>
                                 <div className="w-full bg-black/40 h-2 rounded-full overflow-hidden">
-                                    <div 
-                                        className="bg-accent-main h-full transition-all duration-1000" 
+                                    <div
+                                        className="bg-accent-main h-full transition-all duration-1000"
                                         style={{ width: `${utilisationPercent}%` }}
                                     ></div>
                                 </div>

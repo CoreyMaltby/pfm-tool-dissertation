@@ -153,7 +153,7 @@ const DashboardOverview = ({ session }) => {
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black text-white leading-tight">Overview</h1>
                         <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
-                            Storage: <span className={storageMode === 'cloud' ? 'text-accent-main' : 'text-green-400'}>{storageMode}</span>
+                            Storage: <span className={storageMode === 'cloud' ? 'text-gray-500' : 'text-gray-500 '}>{storageMode}</span>
                         </p>
                     </div>
 

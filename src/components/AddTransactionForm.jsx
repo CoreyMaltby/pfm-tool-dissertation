@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Loader2, ChevronDown, PoundSterling, CreditCard, Tag, Store, AlignLeft, Plus, ArrowUpRight, ArrowDownRight, Wallet, Calendar } from "lucide-react";
 import { dataService } from "../services/dataService";
 
-const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
+const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess, editingTransaction }) => {
     const [loading, setLoading] = useState(false);
     const [accounts, setAccounts] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -18,6 +18,32 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
         account_id: "",
         date: new Date().toISOString().split('T')[0]
     });
+
+    useEffect(() => {
+        if (editingTransaction && isOpen) {
+            // Fill form with existing data
+            setType(editingTransaction.amount < 0 ? 'expense' : 'income');
+            setMerchantInput(editingTransaction.merchant?.name || "");
+            setCategoryInput(editingTransaction.category?.name || "");
+            setFormData({
+                amount: Math.abs(editingTransaction.amount).toString(),
+                description: editingTransaction.description || "",
+                account_id: editingTransaction.account_id,
+                date: new Date(editingTransaction.created_at).toISOString().split('T')[0]
+            });
+        } else if (isOpen) {
+            // Reset for new transaction
+            setFormData({
+                amount: "",
+                description: "",
+                account_id: "",
+                date: new Date().toISOString().split('T')[0]
+            });
+            setMerchantInput("");
+            setCategoryInput("");
+            setType('expense');
+        }
+    }, [editingTransaction, isOpen]);
 
     useEffect(() => {
         if (isOpen && userId) {
@@ -37,7 +63,7 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.account_id || !categoryInput.trim()) {
             alert("Please select an account and provide a category.");
             return;
@@ -50,16 +76,18 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
 
             if (merchantInput.trim() !== "") {
                 const existingMerc = merchants.find(m => m.name.toLowerCase() === merchantInput.toLowerCase());
-                if (existingMerc) finalMerchantId = existingMerc.id;
-                else {
+                if (existingMerc) {
+                    finalMerchantId = existingMerc.id;
+                } else {
                     const newMerc = await dataService.addMerchant({ name: merchantInput }, userId);
                     finalMerchantId = newMerc.id;
                 }
             }
 
             const existingCat = categories.find(c => c.name.toLowerCase() === categoryInput.toLowerCase());
-            if (existingCat) finalCategoryId = existingCat.id;
-            else {
+            if (existingCat) {
+                finalCategoryId = existingCat.id;
+            } else {
                 const newCat = await dataService.addCategory({ name: categoryInput, icon: 'Wallet' }, userId);
                 finalCategoryId = newCat.id;
             }
@@ -76,14 +104,20 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
                 created_at: new Date(formData.date).toISOString()
             };
 
-            await dataService.saveTransaction(transactionData, userId);
+            if (editingTransaction) {
+                transactionData.id = editingTransaction.id;
+                const result = await dataService.updateTransaction(transactionData, editingTransaction, userId);
+                if (result?.error) throw result.error;
+            } else {
+                const result = await dataService.saveTransaction(transactionData, userId);
+                if (result?.error) throw result.error;
+            }
+
             onSuccess();
             onClose();
-            setFormData({ amount: "", description: "", account_id: "", date: new Date().toISOString().split('T')[0] });
-            setMerchantInput("");
-            setCategoryInput("");
         } catch (error) {
-            console.error("Save failed:", error);
+            console.error("Operation failed detail:", error.message || error);
+            alert(`Save failed: ${error.message || "Check console for details"}`);
         } finally {
             setLoading(false);
         }
@@ -94,57 +128,49 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <div className="bg-[#121212] border border-white/10 w-full max-w-lg rounded-[2.5rem] p-8 md:p-10 space-y-6 shadow-2xl animate-in zoom-in duration-300">
-                
+
                 <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-black text-white tracking-tight">Record Transaction</h2>
+                    <h2 className="text-2xl font-black text-white tracking-tight">
+                        {editingTransaction ? "Update Record" : "Record Transaction"}
+                    </h2>
                     <button onClick={onClose} className="p-2 bg-white/5 rounded-xl text-gray-400 hover:text-white transition-all">
                         <X size={20} />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    {/* Amount & Date Row */}
+                    {/* Amount & Date */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col space-y-2">
                             <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1">Amount</label>
                             <input required type="number" step="0.01" className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
                         </div>
                         <div className="flex flex-col space-y-2">
-                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
-                                <Calendar size={12} /> Date
-                            </label>
+                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> Date</label>
                             <input required type="date" className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none [color-scheme:dark]" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
                         </div>
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1">Description</label>
-                        <input className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" placeholder="What was this for?" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                        <input className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" placeholder="Notes..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
                     </div>
 
-                    {/* Merchant */}
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
-                            <Store size={12} /> Merchant
-                        </label>
-                        <input list="merchant-list" placeholder="Search or add merchant..." className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" value={merchantInput} onChange={(e) => setMerchantInput(e.target.value)} />
-                        <datalist id="merchant-list">
-                            {merchants.map(m => <option key={m.id} value={m.name} />)}
-                        </datalist>
+                        <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2"><Store size={12} /> Merchant</label>
+                        <input list="merchant-list" placeholder="Search/Add..." className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" value={merchantInput} onChange={(e) => setMerchantInput(e.target.value)} />
+                        <datalist id="merchant-list">{merchants.map(m => <option key={m.id} value={m.name} />)}</datalist>
                     </div>
 
-                    {/* Account & Category Row*/}
+                    {/* Account & Category */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col space-y-2">
-                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
-                                <CreditCard size={12} /> Account
-                            </label>
+                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2"><CreditCard size={12} /> Account</label>
                             <div className="relative">
-                                <select 
-                                    required 
-                                    className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white appearance-none focus:border-accent-main outline-none cursor-pointer" 
-                                    value={formData.account_id} 
+                                <select
+                                    required
+                                    className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white appearance-none focus:border-accent-main outline-none cursor-pointer"
+                                    value={formData.account_id}
                                     onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
                                 >
                                     <option value="">Select</option>
@@ -155,20 +181,16 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
                         </div>
 
                         <div className="flex flex-col space-y-2">
-                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2">
-                                <Tag size={12} /> Category
-                            </label>
-                            <input 
-                                required 
-                                list="category-list" 
-                                placeholder="Search/Add..." 
-                                className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none" 
-                                value={categoryInput} 
-                                onChange={(e) => setCategoryInput(e.target.value)} 
+                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2"><Tag size={12} /> Category</label>
+                            <input
+                                required
+                                list="category-list"
+                                placeholder="Search/Add..."
+                                className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-accent-main outline-none"
+                                value={categoryInput}
+                                onChange={(e) => setCategoryInput(e.target.value)}
                             />
-                            <datalist id="category-list">
-                                {categories.map(c => <option key={c.id} value={c.name} />)}
-                            </datalist>
+                            <datalist id="category-list">{categories.map(c => <option key={c.id} value={c.name} />)}</datalist>
                         </div>
                     </div>
 
@@ -176,7 +198,7 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess }) => {
                         disabled={loading}
                         className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 shadow-xl ${type === 'expense' ? 'bg-white text-black hover:bg-gray-200' : 'bg-accent-main text-white hover:bg-accent-secondary'}`}
                     >
-                        {loading ? <Loader2 className="animate-spin" size={18} /> : <>Confirm {type} <Plus size={18} /></>}
+                        {loading ? <Loader2 className="animate-spin" size={18} /> : (editingTransaction ? "Update Transaction" : `Confirm ${type}`)}
                     </button>
                 </form>
             </div>

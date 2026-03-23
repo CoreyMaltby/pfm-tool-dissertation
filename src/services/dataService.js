@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
 import { db } from '../lib/db';
-import { use } from 'react';
 
 export const dataService = {
     // Storage Preferences
@@ -189,14 +188,21 @@ export const dataService = {
     // Budgets
     async fetchBudgets(userId) {
         const mode = await this.getStorageMode(userId);
-        const calculateSpent = (txs, catId) => txs.filter(t => t.category_id === catId && t.amount < 0).reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0);
+        const calculateSpent = (txs, catId) =>
+            txs.filter(t => t.category_id === catId && t.amount < 0)
+                .reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0);
 
         if (mode === 'cloud') {
             const [budgetsRes, txsRes] = await Promise.all([
                 supabase.from('budgets').select('*, category:categories(name, icon)').eq('user_id', userId),
                 supabase.from('transactions').select('amount, category_id, accounts!inner(user_id)').eq('accounts.user_id', userId)
             ]);
-            return (budgetsRes.data || []).map(b => ({ ...b, spent: calculateSpent(txsRes.data || [], b.category_id) }));
+
+            return (budgetsRes.data || []).map(b => ({
+                ...b,
+                amount: Number(b.limit_amount) || 0,
+                spent: calculateSpent(txsRes.data || [], b.category_id)
+            }));
         } else {
             const [budgets, txs] = await Promise.all([
                 db.budgets.where('user_id').equals(userId).toArray(),
@@ -204,30 +210,55 @@ export const dataService = {
             ]);
             return await Promise.all(budgets.map(async (b) => {
                 const category = await db.categories.get(b.category_id);
-                return { ...b, category, spent: calculateSpent(txs, b.category_id) };
+                return {
+                    ...b,
+                    category,
+                    amount: Number(b.limit_amount) || 0,
+                    spent: calculateSpent(txs, b.category_id)
+                };
             }));
         }
     },
 
     async saveBudget(budget, userId) {
         const mode = await this.getStorageMode(userId);
+
+        const payload = {
+            user_id: userId,
+            category_id: budget.category_id,
+            limit_amount: Number(budget.amount),
+            is_monthly: true
+        };
+
         if (mode === 'cloud') {
-            const { data, error } = await supabase.from('budgets').upsert({ ...budget, user_id: userId }).select();
+            const { data, error } = await supabase.from('budgets').upsert(payload).select();
             if (error) throw error;
             return data[0];
         } else {
-            const id = await db.budgets.put({ ...budget, user_id: userId });
-            return { ...budget, id, user_id: userId };
+            const id = await db.budgets.put({ ...payload, synced: 1, updated_at: new Date().toISOString() });
+            return { ...payload, id };
         }
     },
 
     async updateBudget(budget, userId) {
         const mode = await this.getStorageMode(userId);
+
+        const payload = {
+            category_id: budget.category_id,
+            limit_amount: Number(budget.amount),
+            user_id: userId
+        };
+
         if (mode === 'cloud') {
-            const { error } = await supabase.from('budgets').update(budget).eq('id', budget.id).eq('user_id', userId);
+            const { error } = await supabase
+                .from('budgets')
+                .update(payload)
+                .eq('id', budget.id)
+                .eq('user_id', userId);
+
             if (error) throw error;
         } else {
-            await db.budgets.put({ ...budget, user_id: userId });
+            await db.budgets.put({ ...payload, id: budget.id, updated_at: new Date().toISOString() });
         }
     },
 

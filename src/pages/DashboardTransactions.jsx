@@ -143,8 +143,8 @@ const DashboardTransactions = ({ session }) => {
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black text-white">Transactions</h1>
-                        <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em]">
-                            Storage: <span className={storageMode === 'cloud' ? 'text-accent-main' : 'text-green-400'}>{storageMode}</span>
+                        <p className="text-white text-[10px] font-bold uppercase tracking-[0.2em]">
+                            Storage: <span className={storageMode === 'cloud' ? 'text-white' : 'text-white'}>{storageMode}</span>
                         </p>
                     </div>
                     <div className="flex gap-3">
@@ -256,7 +256,7 @@ const DashboardTransactions = ({ session }) => {
                             Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredTransactions.length)} of {filteredTransactions.length}
                         </p>
                         <div className="flex items-center gap-4">
-                            <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="text-[10px] font-black uppercase disabled:opacity-20 hover:text-white transition-colors">Previous</button>
+                            <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="text-[10px] font-black uppercase text-accent-main disabled:opacity-20 hover:text-white transition-colors">Previous</button>
                             <span className="text-[10px] font-black text-accent-main bg-accent-main/10 px-3 py-1 rounded-md">Page {currentPage} / {totalPages || 1}</span>
                             <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0} className="text-[10px] font-black uppercase text-accent-main disabled:opacity-20 hover:text-white transition-colors">Next</button>
                         </div>

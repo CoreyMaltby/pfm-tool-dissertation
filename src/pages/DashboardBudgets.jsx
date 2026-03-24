@@ -93,7 +93,6 @@ const DashboardBudgets = ({ session }) => {
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-1">
-                                                    {/* FIXED: Action button visibility */}
                                                     <button onClick={() => { setEditingBudget(budget); setIsFormOpen(true); }} className="p-2 text-gray-300 bg-white/10 hover:bg-white/20 hover:text-white rounded-lg transition-all"><Settings2 size={16} /></button>
                                                     <button onClick={() => handleDelete(budget.id)} className="p-2 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all"><Trash2 size={16} /></button>
                                                 </div>
@@ -130,7 +129,6 @@ const DashboardBudgets = ({ session }) => {
                 </div>
             </main>
 
-            {/* ADDED: Missing form component */}
             {isFormOpen && (
                 <AddBudgetForm 
                     isOpen={isFormOpen} 

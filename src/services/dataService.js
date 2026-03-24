@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { db } from '../lib/db';
+import { use } from 'react';
 
 export const dataService = {
     // Storage Preferences
@@ -313,6 +314,51 @@ export const dataService = {
         } else {
             await db.savings_goals.delete(goalId);
         }
+    },
+
+    async addToGoal(contribution, userId) {
+        const { goalId, accountId, amount, name } = contribution;
+        const mode = await this.getStorageMode(userId);
+
+        let currentGoal;
+        if (mode === 'cloud') {
+            const { data } = await supabase.from('savings_goals').select('*').eq('id', goalId).single();
+            currentGoal = data;
+        } else {
+            currentGoal = await db.savings_goals.get(goalId);
+        }
+
+        const newAmount = (Number(currentGoal.current_amount) || 0) + Number(amount);
+
+        const transactionData = {
+            amount: -Math.abs(amount),
+            description: `Savings: ${name}`,
+            account_id: accountId,
+            created_at: new Date().toISOString()
+        };
+
+        if (mode === 'cloud') {
+            const [goalUpdate, txInsert] = await Promise.all([
+                supabase.from('savings_goals').update({
+                    current_amount: newAmount,
+                    is_completed: newAmount >= currentGoal.target_amount
+                }).eq('id', goalId),
+                supabase.from('transactions').insert([transactionData])
+            ]);
+
+            if (goalUpdate.error) throw goalUpdate.error;
+            if (txInsert.error) throw txInsert.error;
+        } else {
+            await Promise.all([
+                db.savings_goals.update(goalId, {
+                    current_amount: newAmount,
+                    is_completed: newAmount >= currentGoal.target_amount
+                }),
+                db.transactions.add({ ...transactionData, user_id: userId, synced: 1 })
+            ]);
+        }
+
+        await this.adjustAccountBalance(accountId, -amount, userId);
     },
 
     // Accounts

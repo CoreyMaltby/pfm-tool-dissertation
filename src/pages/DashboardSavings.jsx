@@ -6,7 +6,7 @@ import DashboardSidebar from "../components/DashboardSidebar";
 import { Plus, Target, TrendingUp, PiggyBank, Loader2, Settings2, Trash2, ReceiptTurkishLiraIcon } from 'lucide-react';
 import { dataService } from "../services/dataService";
 import AddGoalForm from "../components/addGoalForm";
-import { data } from "react-router-dom";
+import AddToSavingsForm from "../components/addToSavingsForm";
 
 const DashboardSavings = ({ session }) => {
     const [goals, setGoals] = useState([]);
@@ -14,6 +14,8 @@ const DashboardSavings = ({ session }) => {
     const [storageMode, setStorageMode] = useState('loading');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState(null);
+    const [isAddMoneyOpen, setIsAddMoneyOpen] = useState(false);
+    const [preSelectedGoalId, setPreSelectedGoalId] = useState(null);
     const userId = session?.user?.id;
 
     const fetchGoals = async () => {
@@ -57,6 +59,11 @@ const DashboardSavings = ({ session }) => {
         }
     };
 
+    const handleAddMoney = (goalId = null) => {
+        setPreSelectedGoalId(goalId);
+        setIsAddMoneyOpen(true);
+    };
+
     return (
         <div className="flex bg-background-tertiary min-h-screen">
             <DashboardSidebar />
@@ -72,7 +79,7 @@ const DashboardSavings = ({ session }) => {
                     </div>
 
                     <div className="flex gap-3">
-                        <button className="flex items-center gap-2 px-6 py-3 font-black rounded-xl transition-all text-xs shadow-lg bg-background-secondary text-white hover:scale-105">
+                        <button onClick={() => handleAddMoney()} className="flex items-center gap-2 px-6 py-3 font-black rounded-xl transition-all text-xs shadow-lg bg-background-secondary text-white hover:scale-105">
                             <PiggyBank size={18} /> Add to Savings
                         </button>
                         <button
@@ -121,6 +128,7 @@ const DashboardSavings = ({ session }) => {
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-1">
+                                                    <button onClick={() => handleAddMoney(goal.id)} className="p-2 bg-accent-main/10 text-accent-main rounded-lg hover:bg-accent-main hover:text-white transition-all"> <PiggyBank size={16} /> </button>
                                                     <button onClick={() => handleEdit(goal)} className="p-2 text-gray-400 bg-white/5 hover:text-white rounded-lg transition-all"><Settings2 size={16} /></button>
                                                     <button onClick={() => handleDelete(goal.id)} className="p-2 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all"><Trash2 size={16} /></button>
                                                 </div>
@@ -186,6 +194,15 @@ const DashboardSavings = ({ session }) => {
                 userId={userId}
                 onSuccess={fetchGoals}
                 editingGoal={editingGoal}
+            />
+
+            <AddToSavingsForm 
+                isOpen={isAddMoneyOpen}
+                onClose={() => { setIsAddMoneyOpen(false); setPreSelectedGoalId(null); }}
+                userId={userId}
+                onSuccess={fetchGoals}
+                preSelectedGoalId={preSelectedGoalId}
+                goals={goals}
             />
         </div>
     );

@@ -438,6 +438,43 @@ export const dataService = {
         }
     },
 
+    async transferFunds(transfer, userId) {
+        const { fromAccountId, toAccountId, amount, fromAccountName, toAccountName } = transfer;
+        const mode = await this.getStorageMode(userId);
+
+        const data = {
+            created_at: new Date().toISOString(),
+        };
+
+        const outTransaction = {
+            ...data,
+            amount: -Math.abs(amount),
+            description: `Transfer to ${toAccountName}`,
+            account_id: fromAccountId,
+        };
+
+        const inTransaction = {
+            ...data,
+            amount: Math.abs(amount),
+            description: `Transfer from ${fromAccountName}`,
+            account_id: toAccountId,
+        };
+
+        if (mode === 'cloud') {
+            const { error: errorOut } = await supabase.from('transactions').insert([outTransaction]);
+            if (errorOut) throw errorOut;
+
+            const { error: errorIn } = await supabase.from('transactions').insert([inTransaction]);
+            if (errorIn) throw errorIn;
+        } else {
+            await db.transactions.add({ ...outTransaction, user_id: userId, synced: 1 });
+            await db.transactions.add({ ...inTransaction, user_id: userId, synced: 1 });
+        }
+
+        await this.adjustAccountBalance(fromAccountId, -Math.abs(amount), userId);
+        await this.adjustAccountBalance(toAccountId, Math.abs(amount), userId);
+    },
+
     // Categories
     async fetchCategories(userId) {
         const mode = await this.getStorageMode(userId);

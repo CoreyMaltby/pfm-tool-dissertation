@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import DashboardSidebar from "../components/DashboardSidebar";
-import { CreditCard, Plus, Landmark, Wallet, Loader2, Settings2, Trash2, TrendingUp, ArrowUpRight, PiggyBank } from 'lucide-react';
+import { CreditCard, Plus, Landmark, Wallet, Loader2, Settings2, Trash2, TrendingUp, ArrowUpRight, PiggyBank, ArrowRightLeft } from 'lucide-react';
 import { dataService } from "../services/dataService";
 import AddAccountForm from "../components/addAccountForm";
+import TransferFundsForm from "../components/TransferFundsForm";
 
 const TYPE_ICONS = {
     Checking: Landmark,
@@ -17,6 +18,7 @@ const DashboardAccounts = ({ session }) => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState(null);
     const [storageMode, setStorageMode] = useState('loading');
+    const [isTransferOpen, setIsTransferOpen] = useState(false);
     const userId = session?.user?.id;
 
     const fetchAccounts = async () => {
@@ -55,9 +57,14 @@ const DashboardAccounts = ({ session }) => {
                             Storage: <span className={storageMode === 'cloud' ? 'text-white' : 'text-white'}>{storageMode}</span>
                         </p>
                     </div>
-                    <button onClick={() => { setEditingAccount(null); setIsFormOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-background-secondary text-white font-black rounded-xl border border-white/10 hover:scale-105 transition-all text-xs shadow-xl">
-                        <Plus size={18} /> Add Account
-                    </button>
+                    <div className="flex gap-3">
+                        <button onClick={() => setIsTransferOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-background-secondary text-white font-black rounded-xl border border-white/10 hover:scale-105 transition-all text-xs shadow-xl">
+                            <ArrowRightLeft size={18} /> Transfer
+                        </button>
+                        <button onClick={() => { setEditingAccount(null); setIsFormOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-background-secondary text-white font-black rounded-xl border border-white/10 hover:scale-105 transition-all text-xs shadow-xl">
+                            <Plus size={18} /> Add Account
+                        </button>
+                    </div>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -107,8 +114,20 @@ const DashboardAccounts = ({ session }) => {
                     </section>
                 </div>
             </main>
+            <AddAccountForm
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                userId={userId}
+                onSuccess={fetchAccounts}
+                editingAccount={editingAccount} />
 
-            <AddAccountForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} userId={userId} onSuccess={fetchAccounts} editingAccount={editingAccount} />
+            <TransferFundsForm
+                isOpen={isTransferOpen}
+                onClose={() => setIsTransferOpen(false)}
+                userId={userId}
+                onSuccess={fetchAccounts}
+                accounts={accounts}
+            />
         </div>
     );
 };

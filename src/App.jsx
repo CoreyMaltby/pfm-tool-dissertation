@@ -22,6 +22,7 @@ import DashboardInsights from "./pages/DashboardInsights.jsx"
 import DashboardBudgets from "./pages/DashboardBudgets.jsx";
 import DashboardTransactions from "./pages/DashboardTransactions.jsx";
 import DashboardNotifications from "./pages/DashboardNotifications.jsx";
+import DashboardAccounts from "./pages/DashboardAccounts.jsx";
 
 function App() {
   const [session, setSession] = useState(null);
@@ -74,6 +75,7 @@ function App() {
             <Route path="/dashboard/budgets" element={session ? <DashboardBudgets session={session} /> : <Navigate to="/login" />} />
             <Route path="/dashboard/transactions" element={session ? <DashboardTransactions session={session} /> : <Navigate to="/login" />} />
             <Route path="/dashboard/notifications" element={session ? <DashboardNotifications session={session} /> : <Navigate to="/login" />} />
+            <Route path="/dashboard/accounts" element={session ? <DashboardAccounts session={session} /> : <Navigate to="/login" />} />
 
             {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/" />} />

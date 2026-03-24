@@ -4,7 +4,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, PiggyBank, BarChart3, Wallet, ArrowLeftRight, Bell } from 'lucide-react';
+import { LayoutDashboard, PiggyBank, BarChart3, Wallet, ArrowLeftRight, Bell, CreditCard } from 'lucide-react';
 
 const sidebarLinks = [
     { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const sidebarLinks = [
     { name: 'Budgets', path: '/dashboard/budgets', icon: Wallet },
     { name: 'Transactions', path: '/dashboard/transactions', icon: ArrowLeftRight },
     { name: 'Notifications', path: '/dashboard/notifications', icon: Bell },
+    { name: 'Accounts', path: '/dashboard/accounts', icon: CreditCard}
 ];
 
 const DashboardSidebar = () => {

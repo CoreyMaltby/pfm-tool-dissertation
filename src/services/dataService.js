@@ -391,11 +391,21 @@ export const dataService = {
 
     async updateAccount(account, userId) {
         const mode = await this.getStorageMode(userId);
+        const payload = {
+            name: account.name,
+            type: account.type,
+            current_balance: Number(account.current_balance)
+        };
+
         if (mode === 'cloud') {
-            const { error } = await supabase.from('accounts').update(account).eq('id', account.id).eq('user_id', userId);
+            const { error } = await supabase
+                .from('accounts')
+                .update(payload)
+                .eq('id', account.id)
+                .eq('user_id', userId);
             if (error) throw error;
         } else {
-            await db.accounts.put({ ...account, user_id: userId });
+            await db.accounts.update(account.id, payload);
         }
     },
 
@@ -406,6 +416,25 @@ export const dataService = {
             if (error) throw error;
         } else {
             await db.accounts.delete(accountId);
+        }
+    },
+
+    async addAccount(account, userId) {
+        const mode = await this.getStorageMode(userId);
+        const payload = {
+            ...account,
+            user_id: userId,
+            current_balance: Number(account.current_balance) || 0,
+            created_at: new Date().toISOString()
+        };
+
+        if (mode === 'cloud') {
+            const { data, error } = await supabase.from('accounts').insert([payload]).select();
+            if (error) throw error;
+            return data[0];
+        } else {
+            const id = await db.accounts.add(payload);
+            return { ...payload, id };
         }
     },
 

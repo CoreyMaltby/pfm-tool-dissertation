@@ -21,7 +21,6 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess, editingTransac
 
     useEffect(() => {
         if (editingTransaction && isOpen) {
-            // Fill form with existing data
             setType(editingTransaction.amount < 0 ? 'expense' : 'income');
             setMerchantInput(editingTransaction.merchant?.name || "");
             setCategoryInput(editingTransaction.category?.name || "");
@@ -32,7 +31,6 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess, editingTransac
                 date: new Date(editingTransaction.created_at).toISOString().split('T')[0]
             });
         } else if (isOpen) {
-            // Reset for new transaction
             setFormData({
                 amount: "",
                 description: "",
@@ -138,6 +136,32 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess, editingTransac
                     </button>
                 </div>
 
+                {/* RESTORED: TYPE TOGGLE (Income vs Expense) */}
+                <div className="flex p-1 bg-black/40 rounded-2xl border border-white/5">
+                    <button
+                        type="button"
+                        onClick={() => setType('expense')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            type === 'expense'
+                                ? 'bg-red-500 text-white shadow-lg'
+                                : 'text-gray-500 hover:text-white'
+                        }`}
+                    >
+                        <ArrowDownRight size={14} /> Expense
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setType('income')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            type === 'income'
+                                ? 'bg-accent-main text-white shadow-lg'
+                                : 'text-gray-500 hover:text-white'
+                        }`}
+                    >
+                        <ArrowUpRight size={14} /> Income
+                    </button>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Amount & Date */}
                     <div className="grid grid-cols-2 gap-4">
@@ -162,7 +186,6 @@ const AddTransactionForm = ({ isOpen, onClose, userId, onSuccess, editingTransac
                         <datalist id="merchant-list">{merchants.map(m => <option key={m.id} value={m.name} />)}</datalist>
                     </div>
 
-                    {/* Account & Category */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col space-y-2">
                             <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1 flex items-center gap-2"><CreditCard size={12} /> Account</label>

@@ -37,52 +37,109 @@ export const dataService = {
 
     // Data Migration
     async migrateLocalToCloud(userId) {
-        const [txs, budg, goals, accs] = await Promise.all([
-            db.transactions.where('user_id').equals(userId).toArray(),
+        // Fetch all local data
+        const [accs, budgets, goals, txs] = await Promise.all([
+            db.accounts.where('user_id').equals(userId).toArray(),
             db.budgets.where('user_id').equals(userId).toArray(),
             db.savings_goals.where('user_id').equals(userId).toArray(),
-            db.accounts.where('user_id').equals(userId).toArray()
+            db.transactions.where('user_id').equals(userId).toArray()
         ]);
 
-        await Promise.all([
-            txs.length > 0 && supabase.from('transactions').upsert(txs),
-            budg.length > 0 && supabase.from('budgets').upsert(budg),
-            goals.length > 0 && supabase.from('savings_goals').upsert(goals),
-            accs.length > 0 && supabase.from('accounts').upsert(accs)
-        ]);
+        // Removes dexie metadata
+        const scrub = (data) => data.map(({ synced, updated_at, ...item }) => item);
 
-        await this.updateStorageMode(userId, 'cloud');
+        try {
+            // Accounts
+            if (accs.length > 0) {
+                const { error } = await supabase.from('accounts').upsert(scrub(accs));
+                if (error) throw new Error(`Accounts Migration Failed: ${error.message}`);
+            }
 
-        await Promise.all([
-            db.transactions.where('user_id').equals(userId).delete(),
-            db.budgets.where('user_id').equals(userId).delete(),
-            db.savings_goals.where('user_id').equals(userId).delete(),
-            db.accounts.where('user_id').equals(userId).delete()
-        ]);
+            // Budgets & Savings Goals
+            if (budgets.length > 0) {
+                const { error } = await supabase.from('budgets').upsert(scrub(budgets));
+                if (error) throw new Error(`Budgets Migration Failed: ${error.message}`);
+            }
+            if (goals.length > 0) {
+                const { error } = await supabase.from('savings_goals').upsert(scrub(goals));
+                if (error) throw new Error(`Savings Goals Migration Failed: ${error.message}`);
+            }
+
+            // Transactions
+            if (txs.length > 0) {
+                const cloudTxs = txs.map(({ user_id, synced, updated_at, ...rest }) => rest);
+                const { error } = await supabase.from('transactions').upsert(cloudTxs);
+                if (error) throw new Error(`Transactions Migration Failed: ${error.message}`);
+            }
+
+            await this.updateStorageMode(userId, 'cloud');
+
+            await Promise.all([
+                db.accounts.where('user_id').equals(userId).delete(),
+                db.budgets.where('user_id').equals(userId).delete(),
+                db.savings_goals.where('user_id').equals(userId).delete(),
+                db.transactions.where('user_id').equals(userId).delete()
+            ]);
+            return { success: true };
+        } catch (error) {
+            console.error("Migration error: ", error);
+            // Stops function so local data isnt deleted
+            throw error;
+        }
     },
 
     async migrateCloudToLocal(userId) {
-        const [txs, budg, goals, accs] = await Promise.all([
-            supabase.from('transactions').select('*, accounts!inner(user_id)').eq('accounts.user_id', userId),
-            supabase.from('budgets').select('*').eq('user_id', userId),
-            supabase.from('savings_goals').select('*').eq('user_id', userId),
-            supabase.from('accounts').select('*').eq('user_id', userId)
-        ]);
+        try {
+            // Fetch all cloud data
+            const [accsRes, budgRes, goalsRes, txsRes] = await Promise.all([
+                supabase.from('accounts').select('*').eq('user_id', userId),
+                supabase.from('budgets').select('*').eq('user_id', userId),
+                supabase.from('savings_goals').select('*').eq('user_id', userId),
+                supabase.from('transactions').select('*, accounts!inner(user_id)').eq('accounts.user_id', userId)
+            ]);
 
-        await Promise.all([
-            txs.data?.length > 0 && db.transactions.bulkAdd(txs.data.map(({ accounts, ...t }) => ({ ...t, user_id: userId }))),
-            budg.data?.length > 0 && db.budgets.bulkAdd(budg.data),
-            goals.data?.length > 0 && db.savings_goals.bulkAdd(goals.data),
-            accs.data?.length > 0 && db.accounts.bulkAdd(accs.data)
-        ]);
+            if (accsRes.error || budgRes.error || goalsRes.error || txsRes.error) {
+                throw new Error("Failed to fetch data from Cloud for migration.");
+            }
 
-        await this.updateStorageMode(userId, 'local');
-        await Promise.all([
-            supabase.from('transactions').delete().in('id', txs.data?.map(t => t.id) || []),
-            supabase.from('budgets').delete().eq('user_id', userId),
-            supabase.from('savings_goals').delete().eq('user_id', userId),
-            supabase.from('accounts').delete().eq('user_id', userId)
-        ]);
+            const localAccounts = accsRes.data.map(a => ({ ...a, synced: 1 }));
+            const localBudgets = budgRes.data.map(b => ({ ...b, synced: 1 }));
+            const localGoals = goalsRes.data.map(g => ({ ...g, synced: 1 }));
+
+            const localTransactions = txsRes.data.map(({ accounts, ...t }) => ({
+                ...t,
+                user_id: userId,
+                synced: 1
+            }));
+
+            // Overwrites any existing local data
+            await Promise.all([
+                db.accounts.bulkPut(localAccounts),
+                db.budgets.bulkPut(localBudgets),
+                db.savings_goals.bulkPut(localGoals),
+                db.transactions.bulkPut(localTransactions)
+            ]);
+
+            await this.updateStorageMode(userId, 'local');
+
+            if (txsRes.data.length > 0) {
+                await supabase.from('trransactions')
+                    .delete()
+                    .in('id', txsRes.data.map(t => t.id));
+            }
+
+            await Promise.all([
+                supabase.from('budgets').delete().eq('user_id', userId),
+                supabase.from('savings_goals').delete().eq('user_id', userId),
+                supabase.from('accounts').delete().eq('user_id', userId)
+            ]);
+
+            return { success: true };
+        } catch (error) {
+            console.error("Migration error: ", error);
+            // Stops function
+            throw error;
+        }
     },
 
     // Transactions

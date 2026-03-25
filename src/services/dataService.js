@@ -123,7 +123,7 @@ export const dataService = {
             await this.updateStorageMode(userId, 'local');
 
             if (txsRes.data.length > 0) {
-                await supabase.from('trransactions')
+                await supabase.from('transactions')
                     .delete()
                     .in('id', txsRes.data.map(t => t.id));
             }

@@ -68,7 +68,7 @@ function App() {
             <Route path="/signup" element={!session ? <Signup /> : <Navigate to="/dashboard" />} />
 
             {/* Protected Routes */}
-            <Route path="/profile" element={session ? <ProfileSettings /> : <Navigate to="/login" />} />
+            <Route path="/profile" element={session ? <ProfileSettings session={session} /> : <Navigate to="/login" />} />
             <Route path="/dashboard" element={session ? <DashboardOverview session={session} /> : <Navigate to="/login" />} />
             <Route path="/dashboard/savings" element={session ? <DashboardSavings session={session} /> : <Navigate to="/login" />} />
             <Route path="/dashboard/insights" element={session ? <DashboardInsights session={session} /> : <Navigate to="/login" />} />

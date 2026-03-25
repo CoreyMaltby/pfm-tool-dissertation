@@ -3,9 +3,9 @@
  */
 
 import React, { useState, useEffect, useMemo } from "react";
-import { data, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import DashboardSidebar from "../components/DashboardSidebar";
-import { TrendingUp, PieChart, Home, Car, ShoppingBag, Utensils, Plus, ChevronRight, BarChart3, Clock, ArrowUpRight } from 'lucide-react';
+import { TrendingUp, PieChart, Home, Car, ShoppingBag, Utensils, Plus, ChevronRight, BarChart3, Clock, ArrowUpRight, Wallet } from 'lucide-react';
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
 import { dataService } from "../services/dataService";
@@ -33,7 +33,7 @@ const TransactionList = ({ transactions, loading }) => {
     return (
         <div className="space-y-3">
             {transactions.slice(0, 10).map((tx) => (
-                <Link key={tx.id} to={`/dashboard/transactions/${tx.id}`} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors group">
+                <div key={tx.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors group">
                     <div className="flex gap-4 items-center">
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-accent-main font-bold">
                             {tx.category?.name?.charAt(0) || <Clock size={16} />}
@@ -51,7 +51,7 @@ const TransactionList = ({ transactions, loading }) => {
                         </p>
                         <p className="text-[9px] text-gray-600 font-bold uppercase">{new Date(tx.created_at).toLocaleDateString()}</p>
                     </div>
-                </Link>
+                </div>
             ))}
         </div>
     );
@@ -64,7 +64,7 @@ const BudgetCard = ({ budget }) => {
     const remaining = limit - spent;
 
     return (
-        <Link to={`/dashboard/budgets/${budget.id}`} className="block p-5 bg-white/5 rounded-2xl border border-white/5 space-y-3 hover:bg-white/10 transition-colors group">
+        <Link to={`/dashboard/budgets`} className="block p-5 bg-white/5 rounded-2xl border border-white/5 space-y-3 hover:bg-white/10 transition-colors group">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-accent-main/10 rounded-xl flex items-center justify-center text-accent-main font-bold">
@@ -96,12 +96,14 @@ const BudgetCard = ({ budget }) => {
 const DashboardOverview = ({ session }) => {
     const [chartMode, setChartMode] = useState('spend');
     const [storageMode, setStorageMode] = useState('loading');
-    const [cloudData, setCloudData] = useState({ transactions: [], budgets: [] });
+
+    const [cloudData, setCloudData] = useState({ transactions: [], budgets: [], accounts: [] });
     const userId = session?.user?.id;
 
     // Local Queries
     const localTransactions = useLiveQuery(() => userId ? db.transactions.where('user_id').equals(userId).reverse().limit(10).toArray() : [], [userId]);
     const localBudgets = useLiveQuery(() => userId ? db.budgets.where('user_id').equals(userId).toArray() : [], [userId]);
+    const localAccounts = useLiveQuery(() => userId ? db.accounts.where('user_id').equals(userId).toArray() : [], [userId]);
 
     const refreshData = async () => {
         if (!userId) return;
@@ -110,29 +112,34 @@ const DashboardOverview = ({ session }) => {
             setStorageMode(mode);
 
             if (mode === 'cloud') {
-                const [txs, budg] = await Promise.all([
+                const [txs, budg, accs] = await Promise.all([
                     dataService.fetchRecentTransactions(userId),
-                    dataService.fetchBudgets(userId)
+                    dataService.fetchBudgets(userId),
+                    dataService.fetchAccounts(userId)
                 ]);
-                console.log("Cloud Data Fetched:", { transactions: txs, budgets: budg });
-                setCloudData({ transactions: txs, budgets: budg });
+                setCloudData({ transactions: txs, budgets: budg, accounts: accs });
             }
         } catch (err) {
             console.error("Fetch error:", err);
         }
     };
 
-    // Initial load
     useEffect(() => {
         refreshData();
     }, [userId]);
 
     const transactions = storageMode === 'cloud' ? cloudData.transactions : (localTransactions || []);
     const budgets = storageMode === 'cloud' ? cloudData.budgets : (localBudgets || []);
+    const accounts = storageMode === 'cloud' ? cloudData.accounts : (localAccounts || []);
     const isLoading = storageMode === 'loading';
 
+    const totalBalance = useMemo(() => {
+        if (!accounts) return 0;
+        return accounts.reduce((acc, accnt) => acc + (Number(accnt.current_balance) || 0), 0);
+    }, [accounts]);
+
     const safeToSpend = useMemo(() => {
-        if (!budgets.length) return 0;
+        if (!budgets || !budgets.length) return 0;
         const totalLimit = budgets.reduce((acc, b) => acc + (Number(b.limit_amount) || 0), 0);
         const totalSpent = budgets.reduce((acc, b) => acc + (Number(b.spent) || 0), 0);
         const remaining = totalLimit - totalSpent;
@@ -149,29 +156,39 @@ const DashboardOverview = ({ session }) => {
         <div className="flex bg-background-tertiary min-h-screen">
             <DashboardSidebar />
             <main className="flex-1 p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
-                <header className="flex justify-between items-end">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black text-white leading-tight">Overview</h1>
-                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
-                            Storage: <span className={storageMode === 'cloud' ? 'text-gray-500' : 'text-gray-500 '}>{storageMode}</span>
+                        <p className="text-white text-[10px] font-bold uppercase tracking-[0.2em]">
+                            Storage: <span className={storageMode === 'cloud' ? 'text-white' : 'text-white'}>{storageMode}</span>
                         </p>
                     </div>
 
-                    <div className="hidden md:block text-right bg-black/10 px-6 py-3 rounded-2xl border border-white/5">
-                        <p className="text-white/50 text-[10px] font-black uppercase tracking-widest">Safe to Spend</p>
-                        <p className="text-2xl font-black text-accent-main">
-                            £{safeToSpend.toFixed(2)} <span className="text-xs text-white/40">/ day</span>
-                        </p>
+                    <div className="flex gap-4 w-full md:w-auto">
+                        <div className="flex-1 md:flex-none text-right bg-background-secondary px-6 py-4 rounded-[2rem] border border-white/5 shadow-2xl transition-all hover:border-white/10">
+                            <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest flex items-center justify-end gap-1 mb-1">
+                                <Wallet size={12} className="text-accent-main" /> Total Balance
+                            </p>
+                            <p className="text-2xl font-black text-white tracking-tight">
+                                £{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </p>
+                        </div>
+
+                        <div className="flex-1 md:flex-none text-right bg-background-secondary px-6 py-4 rounded-[2rem] border border-white/5 shadow-2xl transition-all hover:border-white/10">
+                            <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-1">Safe to Spend</p>
+                            <p className="text-2xl font-black text-accent-main tracking-tight">
+                                £{safeToSpend.toFixed(2)} <span className="text-[10px] text-gray-500">/ day</span>
+                            </p>
+                        </div>
                     </div>
                 </header>
 
-                {/* Graph Visualization Placeholder */}
-                <section className="bg-background-secondary rounded-3xl p-8 border border-white/5">
+                <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 shadow-2xl">
                     <div className="flex items-center justify-between mb-8">
                         <h2 className="text-xl font-bold text-white">Analytics</h2>
                         <div className="bg-black/20 p-1 rounded-xl flex">
                             {['spend', 'breakdown'].map(m => (
-                                <button key={m} onClick={() => setChartMode(m)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${chartMode === m ? 'bg-accent-main text-white' : 'text-gray-500'}`}>
+                                <button key={m} onClick={() => setChartMode(m)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${chartMode === m ? 'bg-accent-main text-white' : 'text-gray-500 hover:text-white'}`}>
                                     {m}
                                 </button>
                             ))}
@@ -183,11 +200,10 @@ const DashboardOverview = ({ session }) => {
                 </section>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 space-y-6">
+                    <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 space-y-6 shadow-2xl">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-white">Recent Activity</h2>
                             <div className="flex items-center gap-4">
-                                {/*Link to Transactions Page */}
                                 <Link to="/dashboard/transactions" className="p-2 bg-accent-main/10 text-accent-main rounded-lg hover:bg-accent-main hover:text-white transition-all">
                                     <Plus size={16} />
                                 </Link>
@@ -199,7 +215,7 @@ const DashboardOverview = ({ session }) => {
                         <TransactionList transactions={transactions} loading={isLoading} />
                     </section>
 
-                    <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 space-y-6">
+                    <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 space-y-6 shadow-2xl">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-white">Budgets</h2>
                             <Link to="/dashboard/budgets" className="p-2 bg-accent-main/10 text-accent-main rounded-lg hover:bg-accent-main hover:text-white transition-all"><Plus size={16} /></Link>

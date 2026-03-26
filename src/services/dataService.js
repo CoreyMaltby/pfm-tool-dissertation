@@ -611,6 +611,58 @@ export const dataService = {
         } else {
             await db.merchants.delete(merchantId);
         }
-    }
+    },
 
+    //Profile Management
+    async fetchProfile(userId) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, email, storage_mode')
+            .eq('id', userId)
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async updateProfile(userId, updates) {
+        const { error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', userId);
+        if (error) throw error;
+    },
+
+    async deleteAllUserData(userId) {
+        const mode = await this.getStorageMode(userId);
+
+        await Promise.all([
+            db.accounts.where('user_id').equals(userId).delete(),
+            db.transactions.where('user_id').equals(userId).delete(),
+            db.budgets.where('user_id').equals(userId).delete(),
+            db.savings_goals.where('user_id').equals(userId).delete()
+        ]);
+        if (mode === 'cloud') {
+            await Promise.all([
+                supabase.from('transactions').delete().filter('account_id', 'in', 
+                    supabase.from('accounts').select('id').eq('user_id', userId)),
+                supabase.from('budgets').delete().eq('user_id', userId),
+                supabase.from('savings_goals').delete().eq('user_id', userId),
+                supabase.from('accounts').delete().eq('user_id', userId)
+            ]);
+        }
+    },
+
+    async deleteUserAccount(userId) {
+        await Promise.all([
+            db.accounts.where('user_id').equals(userId).delete(),
+            db.transactions.where('user_id').equals(userId).delete(),
+            db.budgets.where('user_id').equals(userId).delete(),
+            db.savings_goals.where('user_id').equals(userId).delete()
+        ]);
+
+        const { error } = await supabase.from('profiles').delete().eq('id', userId);
+        if (error) throw error;
+
+        await supabase.auth.signOut();
+    }
 };

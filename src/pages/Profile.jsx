@@ -12,118 +12,128 @@ const uiTheme = {
     primaryAction: "inline-flex items-center gap-2 px-8 py-4 bg-accent-main text-white font-black rounded-xl shadow-md shadow-accent-main/30 hover:scale-105 transition-transform text-sm",
 };
 
-// Sub-components for category settings
-
-const AccountTab = () => {
-    const [firstName, setfirstName] = useState("");
-    const [secondName, setsecondName] = useState("");
+// Sub-components
+const AccountTab = ({ userId }) => {
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    // Profile update popup
-    const handleSaveProfile = (e) => {
+    useEffect(() => {
+        const loadProfile = async () => {
+            const profile = await dataService.fetchProfile(userId);
+            if (profile) {
+                setFirstName(profile.first_name || "");
+                setLastName(profile.last_name || "");
+                setEmail(profile.email || "");
+            }
+        };
+        if (userId) loadProfile();
+    }, [userId]);
+
+    const handleSaveProfile = async (e) => {
         e.preventDefault();
-        const confirmed = window.confirm("Are you sure you want to update your profile information?");
-        if (confirmed) {
-            // TODO: Database logic
-            console.log("Profile updated:", { firstName, secondName, email });
-            alert("Profile successfully updated.");
+        setLoading(true);
+        try {
+            await dataService.updateProfile(userId, {
+                first_name: firstName,
+                last_name: lastName
+            });
+            alert("Profile updated successfully.");
+        } catch (err) {
+            alert("Update failed: " + err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Data delete popup
-    const handleDeleteData = () => {
-        const confirmed = window.confirm(
-            "Are you sure you want to delete all your finacial data? This action cannot be undone."
-        );
-        if (confirmed) {
-            // TODO: Database logic
-            alert("All financial data has bene deleted.")
-        }
-    };
-
-    // Account Deletion popup
-    const handleDeleteAccount = () => {
-        const confirmed = window.confirm(
-            "Are you sure you want to delete all your acount? This will permanently remove your profile and all accociated data."
-        );
-        if (confirmed) {
-            // TODO: Database logic
-            alert("Your account has been deleted.")
+    const handleDeleteData = async () => {
+        if (!window.confirm("Permanently delete all financial records? This cannot be undone.")) return;
+        setLoading(true);
+        try {
+            await dataService.deleteAllUserData(userId);
+            alert("All financial data has been cleared.");
+            window.location.reload();
+        } catch (err) {
+            alert("Delete failed: " + err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div className="space-y-10">
-            {/* Header */}
             <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-accent-main rounded-full flex items-center justify-center font-bold text-white text-3xl shadow-lg shadow-accent-main/20">
-                    US
+                <div className="w-20 h-20 bg-accent-main rounded-full flex items-center justify-center font-black text-white text-3xl shadow-2xl uppercase">
+                    {firstName.charAt(0)}{lastName.charAt(0) || "U"}
                 </div>
                 <div>
-                    <h3 className="text-xl font-bold text-white leading-tight">Your Profile</h3>
-                    <p className="text-gray-400 text-sm">Configure your profile settings and personal information.</p>
+                    <h3 className="text-xl font-bold text-white">Your Profile</h3>
+                    <p className="text-gray-400 text-sm">{email}</p>
                 </div>
             </div>
 
-            {/* Profile Form */}
             <form className="space-y-6 max-w-xl" onSubmit={handleSaveProfile}>
-                <div className="space-y-1.5">
-                    <label className="text-gray-300 text-xs font-semibold uppercase tracking-widest" htmlFor="firstName">First Name</label>
-                    <input type="text" id="firstName" value={firstName} onChange={(e) => setfirstName(e.target.value)} className={uiTheme.input} required />
-                </div>
-                <div className="space-y-1.5">
-                    <label className="text-gray-300 text-xs font-semibold uppercase tracking-widest" htmlFor="secondName">Second Name</label>
-                    <input type="text" id="secondName" value={secondName} onChange={(e) => setsecondName(e.target.value)} className={uiTheme.input} required />
-                </div>
-                <div className="space-y-1.5">
-                    <label className="text-gray-300 text-xs font-semibold uppercase tracking-widest" htmlFor="email">Email Address</label>
-                    <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className={uiTheme.input} required />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-gray-300 text-[10px] font-black uppercase tracking-widest ml-1">First Name</label>
+                        <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={uiTheme.input} />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-gray-300 text-[10px] font-black uppercase tracking-widest ml-1">Last Name</label>
+                        <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={uiTheme.input} />
+                    </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-700">
-                    <button type="submit" className={uiTheme.primaryAction}>
-                        <Save size={18} /> Save Changes
-                    </button>
+                <div className="space-y-1.5 opacity-50">
+                    <label className="text-gray-300 text-[10px] font-black uppercase tracking-widest ml-1">Email Address (Read Only)</label>
+                    <input type="email" value={email} disabled className={uiTheme.input} />
                 </div>
+
+                <button type="submit" disabled={loading} className={uiTheme.primaryAction}>
+                    {loading ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save Changes</>}
+                </button>
             </form>
 
-            {/* Account Management Actions*/}
             <div className="pt-12 border-t border-gray-700 space-y-6">
-                <div className="space-y-1">
-                    <h4 className="text-lg font-bold text-red-400 uppercase tracking-tighter">Danger Zone</h4>
-                    <p className="text-gray-400 text-sm max-w-2xl leading-relaxed">
-                        Please be aware that these changes are irreversible.
-                    </p>
-                </div>
-
+                <h4 className="text-lg font-bold text-red-400 uppercase tracking-tighter">Danger Zone</h4>
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <button
-                        onClick={handleDeleteData}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600/10 text-red-400 border border-red-800/50 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all text-sm flex-1">
-                        <Trash2 size={18} /> Delete All Data
+                    <button onClick={handleDeleteData} className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600/10 text-red-400 border border-red-800/50 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all text-sm">
+                        <Trash2 size={18} /> Wipe Financial Data
                     </button>
-
-                    <button
-                        onClick={handleDeleteAccount}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all text-sm flex-1 shadow-lg shadow-red-900/20">
+                    <button onClick={() => dataService.deleteAccount(userId)} className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all text-sm shadow-lg shadow-red-900/20">
                         <Trash2 size={18} /> Delete Account
                     </button>
                 </div>
             </div>
         </div>
-    )
+    );
 };
 
 const SecurityTab = ({ userId }) => {
     const [isCloudStorage, setIsCloudStorage] = useState(true);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [isMigrating, setIsMigrating] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     // Password update confirmation popup
-    const handlePasswordUpdate = (e) => {
+    const handlePasswordUpdate = async (e) => {
         e.preventDefault();
-        if (window.confirm("Are you sure you want to update your password? You will be required to log in again with your new credentials.")) {
+        if (newPassword !== confirmPassword) return alert("Passwords do not match.");
+        if (newPassword.length < 6) return alert("Password must be at least 6 characters.");
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) throw error;
             alert("Password successfully updated.");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -186,16 +196,16 @@ const SecurityTab = ({ userId }) => {
                 <h3 className="text-xl font-bold text-white">Change Password</h3>
                 <form className="space-y-6 max-w-lg mt-6" onSubmit={handlePasswordUpdate}>
                     <div className="space-y-1.5">
-                        <label className="text-gray-300 text-xs font-semibold uppercase tracking-widest" htmlFor="current">Current Password</label>
-                        <input type="password" id="current" className={uiTheme.input} />
+                        <label className="text-gray-300 text-[10px] font-black uppercase tracking-widest ml-1">New Password</label>
+                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={uiTheme.input} required />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-gray-300 text-xs font-semibold uppercase tracking-widest" htmlFor="new">New Password</label>
-                        <input type="password" id="new" className={uiTheme.input} />
+                        <label className="text-gray-300 text-[10px] font-black uppercase tracking-widest ml-1">Confirm New Password</label>
+                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={uiTheme.input} required />
                     </div>
 
-                    <button type="submit" className={`${uiTheme.primaryAction} mt-4`}>
-                        <Key size={18} /> Update Password
+                    <button type="submit" disabled={loading} className={`${uiTheme.primaryAction} mt-4`}>
+                        {loading ? <Loader2 className="animate-spin" size={18} /> : <><Key size={18} /> Update Password</>}
                     </button>
                 </form>
             </div>
@@ -407,7 +417,7 @@ const ProfileSettings = ({ session }) => {
     const userId = session?.user?.id;
 
     const components = {
-        "Account": <AccountTab />,
+        "Account": <AccountTab userId={userId} />,
         "Security & Privacy": <SecurityTab userId={userId} />,
         "Notifications": <NotificationsTab />,
         "Dashboard": <DashboardTab />

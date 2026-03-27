@@ -1,33 +1,37 @@
-/** Dashboard Insights Page
- * Template-based chart builder and export functionality.
- */
-
 import React, { useState, useEffect, useMemo } from "react";
 import {
     BarChart3, PieChart, TrendingUp, Download, Plus, Filter,
-    FileJson, FileSpreadsheet, Zap, Loader2
+    FileJson, FileSpreadsheet, Zap, Loader2, Info
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, BarChart, Bar,
-    PieChart as RePie, Pie
+    PieChart as RePie, Pie, Cell, Legend
 } from 'recharts';
 import DashboardSidebar from "../components/DashboardSidebar";
 import { dataService } from "../services/dataService";
 
+const category_colours = ['#22c55e', '#3b82f6', '#a855f7', '#f59e0b', '#ef4444', '#06b6d4'];
+
 const DashboardInsights = ({ session }) => {
     const [selectedTemplate, setSelectedTemplate] = useState("Spending Trend");
     const [transactions, setTransactions] = useState([]);
+    const [timeFrame, setTimeFrame] = useState("1Y"); // Default to 1Y to ensure data shows up
+    const [budgets, setBudgets] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const userId = session?.user?.id;
 
-    // Fetch data
     useEffect(() => {
         const loadData = async () => {
             if (!userId) return;
+            setIsLoading(true);
             try {
-                const data = await dataService.fetchAllTransactions(userId);
-                setTransactions(data || []);
+                const [txData, budgetData] = await Promise.all([
+                    dataService.fetchAllTransactions(userId),
+                    dataService.fetchBudgets(userId)
+                ]);
+                setTransactions(txData || []);
+                setBudgets(budgetData || []);
             } catch (error) {
                 console.error("Insights load error: ", error);
             } finally {
@@ -37,9 +41,21 @@ const DashboardInsights = ({ session }) => {
         loadData();
     }, [userId]);
 
-    // Spending Trend
+    // THE FILTER ENGINE - Handles date logic
+    const filteredTransactions = useMemo(() => {
+        const now = new Date();
+        let startDate = new Date();
+
+        if (timeFrame === '7d') startDate.setDate(now.getDate() - 7);
+        else if (timeFrame === '30d') startDate.setDate(now.getDate() - 30);
+        else if (timeFrame === 'MTD') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        else if (timeFrame === '1Y') startDate.setFullYear(now.getFullYear() - 1);
+
+        return transactions.filter(t => new Date(t.created_at) >= startDate);
+    }, [transactions, timeFrame]);
+
     const trendData = useMemo(() => {
-        const groups = transactions
+        const groups = filteredTransactions
             .filter(t => t.amount < 0)
             .reduce((acc, t) => {
                 const date = new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
@@ -47,23 +63,38 @@ const DashboardInsights = ({ session }) => {
                 return acc;
             }, {});
 
-        // Convert to sorted array
-        return Object.keys(groups).map(date => ({
-            date,
-            amount: groups[date]
-        })).slice(-7)
-    }, [transactions])
+        return Object.keys(groups).map(date => ({ date, amount: groups[date] }));
+    }, [filteredTransactions]);
+
+    const categoryData = useMemo(() => {
+        const groups = filteredTransactions
+            .filter(t => t.amount < 0)
+            .reduce((acc, t) => {
+                const name = t.category?.name || "Other";
+                acc[name] = (acc[name] || 0) + Math.abs(t.amount);
+                return acc;
+            }, {});
+
+        return Object.keys(groups).map((name, index) => ({
+            name, 
+            value: groups[name],
+            fill: category_colours[index % category_colours.length]
+        })).sort((a, b) => b.value - a.value);
+    }, [filteredTransactions]);
+
+    const varianceData = useMemo(() => {
+        return budgets.map(b => ({
+            name: b.category?.name || "Budget",
+            Allocated: Number(b.limit_amount) || 0,
+            Actual: Number(b.spent) || 0,
+        }));
+    }, [budgets]);
 
     const templates = [
-        { name: "Spending Trend", icon: TrendingUp },
-        { name: "Category Mix", icon: PieChart },
-        { name: "Budget Variance", icon: BarChart3 },
+        { name: "Spending Trend", icon: TrendingUp, desc: "Velocity of daily expenses" },
+        { name: "Category Mix", icon: PieChart, desc: "Composition of your spending" },
+        { name: "Budget Variance", icon: BarChart3, desc: "Allocated vs. Real-world spend" },
     ];
-
-    const handleExport = (format) => {
-        alert(`Preparing ${selectedTemplate} for export as ${format}...`);
-        // TODO: Integration with jsPDF or ExcelJS
-    };
 
     return (
         <div className="flex bg-background-tertiary min-h-screen">
@@ -72,106 +103,147 @@ const DashboardInsights = ({ session }) => {
             <main className="flex-1 p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-black text-white leading-tight">Financial Insights</h1>
-                        <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Analytics Dashboard</p>
+                        <h1 className="text-3xl font-black text-white tracking-tight">Financial Insights</h1>
+                        <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">Data Analysis Engine</p>
                     </div>
 
                     <div className="flex gap-3">
-                        <div className="relative group">
-                            <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl transition-all text-xs shadow-lg">
-                                <Download size={18} /> Export Data
-                            </button>
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-background-secondary border border-white/10 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-10 overflow-hidden">
-                                <button onClick={() => handleExport('PDF')} className="w-full px-4 py-3 text-left text-xs text-white hover:bg-white/5 flex items-center gap-2 font-bold">
-                                    <FileSpreadsheet size={14} className="text-accent-main" /> Export as PDF
+                        <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-white/5 shadow-inner">
+                            {['7d', '30d', 'MTD', '1Y'].map((t) => (
+                                <button
+                                    key={t}
+                                    onClick={() => setTimeFrame(t)}
+                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${timeFrame === t ? 'bg-accent-main text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                                >
+                                    {t}
                                 </button>
-                                <button onClick={() => handleExport('CSV')} className="w-full px-4 py-3 text-left text-xs text-white hover:bg-white/5 flex items-center gap-2 font-bold">
-                                    <FileJson size={14} className="text-accent-main" /> Export as CSV
-                                </button>
-                            </div>
+                            ))}
                         </div>
+
+                        <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl transition-all text-xs shadow-lg hover:scale-105 active:scale-95">
+                            <Download size={18} /> Export Data
+                        </button>
                     </div>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* Template Sidebar */}
-                    <section className="bg-background-secondary rounded-[2.5rem] p-6 border border-white/5 space-y-6 shadow-2xl">
-                        <div className="flex items-center gap-2 text-accent-main px-2">
-                            <Filter size={18} />
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em]">Templates</h2>
+                    {/* Sidebar Panel */}
+                    <section className="space-y-4">
+                        <div className="bg-background-secondary rounded-3xl p-6 border border-white/10 space-y-6 shadow-2xl">
+                            <div className="flex items-center gap-2 text-accent-main px-2">
+                                <Filter size={18} />
+                                <h2 className="text-[10px] font-black uppercase tracking-widest">Visual Engine</h2>
+                            </div>
+                            <nav className="space-y-2">
+                                {templates.map((temp) => (
+                                    <button
+                                        key={temp.name}
+                                        onClick={() => setSelectedTemplate(temp.name)}
+                                        className={`w-full flex flex-col items-start gap-1 px-6 py-4 rounded-2xl transition-all ${selectedTemplate === temp.name ? "bg-accent-main text-white shadow-xl scale-[1.02]" : "text-gray-500 hover:bg-white/5"}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <temp.icon size={16} />
+                                            <span className="text-[11px] font-black uppercase tracking-widest">{temp.name}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </nav>
                         </div>
-                        <nav className="space-y-2">
-                            {templates.map((temp) => (
-                                <button
-                                    key={temp.name}
-                                    onClick={() => setSelectedTemplate(temp.name)}
-                                    className={`w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${selectedTemplate === temp.name
-                                        ? "bg-accent-main text-white shadow-xl scale-[1.02]"
-                                        : "text-gray-500 hover:bg-white/5 hover:text-white"
-                                        }`}
-                                >
-                                    <temp.icon size={16} />
-                                    {temp.name}
-                                </button>
-                            ))}
-                        </nav>
+
+                        {/* Quick Stats Widget */}
+                        <div className="bg-background-secondary rounded-3xl p-6 border border-white/10 shadow-xl">
+                            <p className="text-white font-black text-[10px] uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <Info size={14} className="text-accent-main" /> Quick Stats
+                            </p>
+                            <div className="space-y-5">
+                                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-tight">Daily Avg.</span>
+                                    <span className="text-sm font-black text-white">£{(trendData.reduce((a, b) => a + b.amount, 0) / trendData.length || 0).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-tight">Data Points</span>
+                                    <span className="text-sm font-black text-accent-main">{filteredTransactions.length}</span>
+                                </div>
+                            </div>
+                        </div>
                     </section>
 
-                    {/* Chart Stage */}
+                    {/* Chart Area */}
                     <section className="lg:col-span-3 space-y-8">
-                        <div className="bg-background-secondary rounded-[2.5rem] p-10 border border-white/5 h-[550px] flex flex-col shadow-2xl relative overflow-hidden">
+                        <div className="bg-background-secondary rounded-[2.5rem] p-10 border border-white/10 h-[550px] flex flex-col shadow-2xl relative">
                             <div className="flex justify-between items-start mb-10">
-                                <div>
-                                    <h2 className="text-2xl font-black text-white tracking-tight">{selectedTemplate}</h2>
-                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Real-time Visualization</p>
-                                </div>
-                                <div className="p-3 bg-accent-main/10 rounded-2xl">
-                                    <Zap className="text-accent-main" size={20} />
+                                <h2 className="text-2xl font-black text-white tracking-tight">{selectedTemplate}</h2>
+                                <div className="px-3 py-1 bg-accent-main/10 rounded-full border border-accent-main/20">
+                                    <span className="text-[10px] font-black text-accent-main uppercase tracking-widest">{timeFrame} View</span>
                                 </div>
                             </div>
 
-                            <div className="flex-1 w-full min-h-0 relative"> {/* FIXED: Added min-h-0 and relative */}
+                            <div className="flex-1 w-full min-h-0 relative">
                                 {isLoading ? (
-                                    <div className="h-full flex items-center justify-center text-gray-500 gap-3">
-                                        <Loader2 className="animate-spin" size={20} />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Processing Data...</span>
-                                    </div>
+                                    <div className="h-full flex items-center justify-center text-gray-500 gap-3"><Loader2 className="animate-spin" /></div>
                                 ) : (
                                     <ResponsiveContainer width="100%" height="100%">
                                         {selectedTemplate === "Spending Trend" ? (
-                                            <AreaChart data={trendData}>
-                                                <defs>
-                                                    <linearGradient id="colorAmt" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                                                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                                                    </linearGradient>
-                                                </defs>
+                                            <AreaChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                <XAxis
-                                                    dataKey="date"
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }}
-                                                    dy={10}
-                                                />
-                                                <YAxis
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }}
-                                                />
-                                                <Tooltip
+                                                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 10, fontWeight: '900' }} dy={10} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 10, fontWeight: '900' }} tickFormatter={(val) => `£${val}`} />
+                                                <Tooltip 
                                                     contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                                    itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                                                    labelStyle={{ color: '#ffffff', fontWeight: '900', marginBottom: '4px' }} 
+                                                    itemStyle={{ color: '#22c55e', fontSize: '12px', fontWeight: 'bold' }}
+                                                    formatter={(value) => [`£${value.toFixed(2)}`, "Spent"]}
                                                 />
-                                                <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fillOpacity={1} fill="url(#colorAmt)" />
+                                                <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fill="#22c55e" fillOpacity={0.15} />
                                             </AreaChart>
+                                        ) : selectedTemplate === "Category Mix" ? (
+                                            <RePie>
+                                                <Pie
+                                                    data={categoryData}
+                                                    dataKey="value"
+                                                    nameKey="name"
+                                                    cx="50%" cy="45%"
+                                                    outerRadius={110} 
+                                                    label={({ name, value }) => `${name}: £${value.toFixed(0)}`}
+                                                    stroke="#121212"
+                                                    strokeWidth={3}
+                                                >
+                                                    {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
+                                                </Pie>
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: 'none', borderRadius: '12px' }} itemStyle={{ color: '#fff', fontWeight: 'bold' }} />
+                                                <Legend iconType="circle" verticalAlign="bottom" wrapperStyle={{ paddingTop: '40px', fontSize: '10px', fontWeight: 'bold' }} />
+                                            </RePie>
                                         ) : (
-                                            <div className="h-full flex items-center justify-center text-gray-600 text-[10px] font-black uppercase tracking-[0.3em] border border-dashed border-white/10 rounded-3xl">
-                                                {selectedTemplate} Development in Progress
-                                            </div>
+                                            <BarChart data={varianceData} barGap={12} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 10, fontWeight: '900' }} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#ffffff', fontSize: 10, fontWeight: '900' }} tickFormatter={(val) => `£${val}`} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: 'none', borderRadius: '12px' }} itemStyle={{ fontWeight: 'bold' }} />
+                                                <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px' }} />
+                                                <Bar dataKey="Allocated" fill="#334155" radius={[6, 6, 0, 0]} name="Allocated" />
+                                                <Bar dataKey="Actual" fill="#22c55e" radius={[6, 6, 0, 0]} name="Actual" />
+                                            </BarChart>
                                         )}
                                     </ResponsiveContainer>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* Recommendation Card */}
+                        <div className="bg-background-secondary border border-white/10 p-8 rounded-[2.5rem] flex items-center gap-8 shadow-2xl relative overflow-hidden group">
+                            <div className="w-16 h-16 bg-accent-main/20 rounded-[1.5rem] flex items-center justify-center text-accent-main shrink-0 backdrop-blur-sm">
+                                <Zap size={32} />
+                            </div>
+                            <div className="space-y-1 relative z-10">
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest">
+                                    {selectedTemplate === "Budget Variance" ? "Efficiency Analysis" : "Intelligence Alert"}
+                                </h3>
+                                <p className="text-white/80 text-xs font-black leading-relaxed max-w-xl">
+                                    {selectedTemplate === "Budget Variance"
+                                        ? `Efficiency Score: ${Math.round((varianceData.reduce((a, b) => a + b.Actual, 0) / varianceData.reduce((a, b) => a + b.Allocated, 0)) * 100) || 0}%. You are managing your allocations effectively.`
+                                        : `Your top expense is ${categoryData[0]?.name || 'uncategorized'}. Adjusting this by 10% would yield £${(categoryData[0]?.value * 0.1 || 0).toFixed(2)} in savings.`
+                                    }
+                                </p>
                             </div>
                         </div>
                     </section>

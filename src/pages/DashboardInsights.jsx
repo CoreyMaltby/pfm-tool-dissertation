@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     BarChart3, PieChart, TrendingUp, Download, Plus, Filter,
-    Zap, Loader2, Info, Activity, Grid3x3, X, RefreshCcw
+    Zap, Loader2, Info, Activity, Grid3x3, RefreshCcw, FileImage, FileJson
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, BarChart, Bar,
     PieChart as RePie, Pie, Cell, Legend, LineChart, Line, LabelList
 } from 'recharts';
+import * as htmlToImage from 'html-to-image';
 import DashboardSidebar from "../components/DashboardSidebar";
 import { dataService } from "../services/dataService";
 
@@ -107,12 +108,13 @@ const DashboardInsights = ({ session }) => {
     const [accounts, setAccounts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const chartRef = useRef(null);
     const userId = session?.user?.id;
 
     const [customConfig, setCustomConfig] = useState({
         type: 'Bar',
         source: 'all',
-        datStart: '',
+        dateStart: '',
         dateEnd: '',
     });
 
@@ -202,6 +204,23 @@ const DashboardInsights = ({ session }) => {
         return data;
     }, [filteredTransactions]);
 
+    const handleDownloadPNG = async () => {
+        if (!chartRef.current) return;
+        try {
+            const dataUrl = await htmlToImage.toPng(chartRef.current, {
+                backgroundColor: '#121212',
+                style: { borderRadius: '2.5rem' },
+                cacheBust: true,
+            });
+            const link = document.createElement('a');
+            link.download = `${selectedTemplate.toLowerCase().replace(/\s/g, '_')}_insight.png`;
+            link.href = dataUrl;
+            link.click();
+        } catch (error) {
+            console.error('Download failed: ', error);
+        }
+    };
+
     const templates = [
         { name: "Spending Trend", icon: TrendingUp, desc: "Tracking of daily expenses" },
         { name: "Category Mix", icon: PieChart, desc: "Mix of your spending" },
@@ -228,7 +247,21 @@ const DashboardInsights = ({ session }) => {
                             </div>
                         )}
                         <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-accent-secondary text-white font-black rounded-xl text-xs shadow-lg hover:scale-105 active:scale-95"><Plus size={18} /> Create Custom</button>
-                        <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl transition-all text-xs shadow-lg hover:scale-105 active:scale-95"><Download size={18} /> Export Data</button>
+                        <div className="relative group">
+                            <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl transition-all text-xs shadow-lg">
+                                <Download size={18} /> Export Data
+                            </button>
+                            <div className="absolute top-full right-0 w-56 pt-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto transition-all z-[100]">
+                                <div className="bg-background-secondary border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+                                    <button onClick={handleDownloadPNG} className="w-full px-5 py-4 text-left text-[11px] font-black uppercase tracking-widest text-white hover:bg-white/5 flex items-center gap-3 border-b border-white/5 transition-colors">
+                                        <FileImage size={16} className="text-accent-main" /> Save as Image
+                                    </button>
+                                    <button className="w-full px-5 py-4 text-left text-[11px] font-black uppercase tracking-widest text-white hover:bg-white/5 flex items-center gap-3 transition-colors">
+                                        <FileJson size={16} className="text-accent-main" /> Raw CSV Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </header>
 
@@ -268,84 +301,83 @@ const DashboardInsights = ({ session }) => {
                     </section>
 
                     <section className="lg:col-span-3 space-y-8">
-                        <div className="bg-background-secondary rounded-[2.5rem] p-10 border border-white/10 h-[550px] flex flex-col shadow-2xl relative">
+                        <div ref={chartRef} className="bg-background-secondary rounded-[2.5rem] p-10 border border-white/10 h-[550px] flex flex-col shadow-2xl relative">
                             <h2 className="text-2xl font-black text-white mb-10 tracking-tight">{selectedTemplate}</h2>
                             <div className="flex-1 w-full min-h-0 relative">
-                                {isLoading ? <div className="h-full flex items-center justify-center text-gray-500 gap-3"><Loader2 className="animate-spin" /></div> : (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        {selectedTemplate === "Custom View" ? (
-                                            customConfig.type === 'Area' ? (
-                                                <AreaChart data={trendData}>
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                    <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
-                                                    <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
-                                                    <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fill="#22c55e" fillOpacity={0.15} />
-                                                </AreaChart>
-                                            ) : customConfig.type === 'Line' ? (
-                                                <LineChart data={trendData}>
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                    <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
-                                                    <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
-                                                    <Line type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
-                                                </LineChart>
-                                            ) : (
-                                                <BarChart data={trendData}>
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                    <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
-                                                    <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
-                                                    <Bar dataKey="amount" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                                                </BarChart>
-                                            )
-                                        ) : selectedTemplate === "Spending Trend" ? (
+                                {isLoading ? <div className="h-full flex items-center justify-center text-gray-500 gap-3"><Loader2 className="animate-spin" /></div> : (<ResponsiveContainer width="100%" height="100%">
+                                    {selectedTemplate === "Custom View" ? (
+                                        customConfig.type === 'Area' ? (
                                             <AreaChart data={trendData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                                                 <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
                                                 <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
                                                 <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fill="#22c55e" fillOpacity={0.15} />
                                             </AreaChart>
-                                        ) : selectedTemplate === "Daily Line" ? (
+                                        ) : customConfig.type === 'Line' ? (
                                             <LineChart data={trendData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                                                 <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
                                                 <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} />
-                                                <Line type="stepAfter" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
+                                                <Line type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
                                             </LineChart>
-                                        ) : selectedTemplate === "Category Mix" ? (
-                                            <RePie>
-                                                <Pie data={categoryData} dataKey="value" cx="50%" cy="45%" outerRadius={120} label={({ name, value }) => `${name}: £${value.toFixed(0)}`} stroke="none">
-                                                    {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
-                                                </Pie>
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} />
-                                                <Legend verticalAlign="bottom" />
-                                            </RePie>
-                                        ) : selectedTemplate === "Spending Heatmap" ? (
-                                            <BarChart data={heatmapData} layout="vertical" margin={{ left: 40 }}>
-                                                <XAxis type="number" hide />
-                                                <YAxis dataKey="day" type="category" axisLine={false} tickLine={false} tick={{ fill: '#fff', fontWeight: 'bold' }} />
-                                                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => `£${v.toFixed(2)}`} />
-                                                <Bar dataKey="value" radius={[0, 10, 10, 0]}>
-                                                    {heatmapData.map((entry, index) => (
-                                                        <Cell key={index} fill={entry.value > 500 ? '#ef4444' : entry.value > 100 ? '#f59e0b' : '#22c55e'} />
-                                                    ))}
-                                                </Bar>
-                                            </BarChart>
                                         ) : (
-                                            <BarChart data={varianceData} barGap={12}>
+                                            <BarChart data={trendData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                <XAxis dataKey="name" tick={{ fill: '#fff', fontSize: 10 }} />
-                                                <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(val) => `£${val}`} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
-                                                <Legend verticalAlign="top" align="right" />
-                                                <Bar dataKey="Allocated" fill="#334155" radius={[6, 6, 0, 0]} />
-                                                <Bar dataKey="Actual" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                                                <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
+                                                <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
+                                                <Bar dataKey="amount" fill="#22c55e" radius={[6, 6, 0, 0]} />
                                             </BarChart>
-                                        )}
-                                    </ResponsiveContainer>
+                                        )
+                                    ) : selectedTemplate === "Spending Trend" ? (
+                                        <AreaChart data={trendData}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                            <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
+                                            <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
+                                            <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fill="#22c55e" fillOpacity={0.15} />
+                                        </AreaChart>
+                                    ) : selectedTemplate === "Daily Line" ? (
+                                        <LineChart data={trendData}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                            <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
+                                            <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} />
+                                            <Line type="stepAfter" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
+                                        </LineChart>
+                                    ) : selectedTemplate === "Category Mix" ? (
+                                        <RePie>
+                                            <Pie data={categoryData} dataKey="value" cx="50%" cy="45%" outerRadius={120} label={({ name, value }) => `${name}: £${value.toFixed(0)}`} stroke="none">
+                                                {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} />
+                                            <Legend verticalAlign="bottom" />
+                                        </RePie>
+                                    ) : selectedTemplate === "Spending Heatmap" ? (
+                                        <BarChart data={heatmapData} layout="vertical" margin={{ left: 40 }}>
+                                            <XAxis type="number" hide />
+                                            <YAxis dataKey="day" type="category" axisLine={false} tickLine={false} tick={{ fill: '#fff', fontWeight: 'bold' }} />
+                                            <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => `£${v.toFixed(2)}`} />
+                                            <Bar dataKey="value" radius={[0, 10, 10, 0]}>
+                                                {heatmapData.map((entry, index) => (
+                                                    <Cell key={index} fill={entry.value > 500 ? '#ef4444' : entry.value > 100 ? '#f59e0b' : '#22c55e'} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    ) : (
+                                        <BarChart data={varianceData} barGap={12}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                            <XAxis dataKey="name" tick={{ fill: '#fff', fontSize: 10 }} />
+                                            <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(val) => `£${val}`} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
+                                            <Legend verticalAlign="top" align="right" />
+                                            <Bar dataKey="Allocated" fill="#334155" radius={[6, 6, 0, 0]} />
+                                            <Bar dataKey="Actual" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                                        </BarChart>
+                                    )}
+                                </ResponsiveContainer>
                                 )}
                             </div>
                         </div>

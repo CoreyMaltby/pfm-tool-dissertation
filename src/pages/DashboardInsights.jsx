@@ -18,20 +18,32 @@ const DashboardInsights = ({ session }) => {
     const [transactions, setTransactions] = useState([]);
     const [timeFrame, setTimeFrame] = useState("1Y");
     const [budgets, setBudgets] = useState([]);
+    const [accounts, setAccounts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const userId = session?.user?.id;
+
+    const [customConfig, setCustomConfig] = useState({
+        type: 'Bar',
+        source: 'all',
+        datStart: '',
+        dateEnd: '',
+    });
 
     useEffect(() => {
         const loadData = async () => {
             if (!userId) return;
             setIsLoading(true);
             try {
-                const [txData, budgetData] = await Promise.all([
+                const [txData, budgetData, accData] = await Promise.all([
                     dataService.fetchAllTransactions(userId),
-                    dataService.fetchBudgets(userId)
+                    dataService.fetchBudgets(userId),
+                    dataService.fetchAccounts(userId)
+
                 ]);
                 setTransactions(txData || []);
                 setBudgets(budgetData || []);
+                setAccounts(accData || []);
             } catch (error) {
                 console.error("Insights load error: ", error);
             } finally {
@@ -41,7 +53,6 @@ const DashboardInsights = ({ session }) => {
         loadData();
     }, [userId]);
 
-    // THE FILTER ENGINE - Handles date logic
     const filteredTransactions = useMemo(() => {
         const now = new Date();
         let startDate = new Date();
@@ -111,6 +122,92 @@ const DashboardInsights = ({ session }) => {
         { name: "Spending Heatmap", icon: Grid3x3, desc: "Spending by day of week" },
     ];
 
+    const CreateChartModal = ({ isOpen, onClose, accounts, config, setConfig, onCreate }) => {
+        if (!isOpen) return null;
+
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+
+                {/* Content */}
+                <div className="relative bg-background-secondary w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                    <div className="p-8 space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-xl font-black text-white uppercase tracking-tight">Chart Builder</h2>
+                            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+                                <Plus className="rotate-45" size={24} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Select Template Type */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Visual Style</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['Bar', 'Line', 'Area'].map(type => (
+                                        <button
+                                            key={type}
+                                            onClick={() => setConfig({ ...config, type })}
+                                            className={`py-3 rounded-xl border font-bold text-xs transition-all ${config.type === type ? 'bg-accent-main border-accent-main text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                                        >
+                                            {type}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Select Source */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Data Source</label>
+                                <select
+                                    value={config.source}
+                                    onChange={(e) => setConfig({ ...config, source: e.target.value })}
+                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-accent-main/20 outline-none cursor-pointer"
+                            >
+                                    <option value="all">All Transactions</option>
+                                    <optgroup label="Specific Accounts">
+                                        {accounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.name}</option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            {/* Date Selection */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">From</label>
+                                    <input
+                                        type="date"
+                                        value={config.dateStart}
+                                        onChange={(e) => setConfig({ ...config, dateStart: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white color-scheme-dark"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">To</label>
+                                    <input
+                                        type="date"
+                                        value={config.dateEnd}
+                                        onChange={(e) => setConfig({ ...config, dateEnd: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white color-scheme-dark"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={onCreate}
+                            className="w-full py-4 bg-accent-main text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-accent-main/20 hover:scale-[1.02] transition-all"
+                        >
+                            Generate Custom Insight
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="flex bg-background-tertiary min-h-screen">
             <DashboardSidebar />
@@ -118,7 +215,6 @@ const DashboardInsights = ({ session }) => {
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black text-white tracking-tight">Financial Insights</h1>
-                        <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">Analytical Intelligence</p>
                     </div>
                     <div className="flex gap-3">
                         <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-white/5 shadow-inner">
@@ -126,6 +222,12 @@ const DashboardInsights = ({ session }) => {
                                 <button key={t} onClick={() => setTimeFrame(t)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${timeFrame === t ? 'bg-accent-main text-white' : 'text-gray-500 hover:text-white'}`}>{t}</button>
                             ))}
                         </div>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="flex items-center gap-2 px-6 py-3 bg-background-secondary text-white font-black rounded-xl shadow-2xl hover:scale-105 transition-all text-xs border border-white/10"
+                        >
+                            <Plus size={18} /> Create Custom Chart
+                        </button>
                         <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl transition-all text-xs shadow-lg hover:scale-105 active:scale-95"><Download size={18} /> Export Data</button>
                     </div>
                 </header>
@@ -243,6 +345,18 @@ const DashboardInsights = ({ session }) => {
                                 </p>
                             </div>
                         </div>
+                        {/* Create Card */}
+                        <CreateChartModal
+                            isOpen={isModalOpen}
+                            onClose={() => setIsModalOpen(false)}
+                            accounts={accounts}
+                            config={customConfig}
+                            setConfig={setCustomConfig}
+                            onCreate={() => {
+                                setSelectedTemplate("Custom View");
+                                setIsModalOpen(false);
+                            }}
+                        />
                     </section>
                 </div>
             </main>

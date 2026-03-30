@@ -1,17 +1,103 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
     BarChart3, PieChart, TrendingUp, Download, Plus, Filter,
-    FileJson, FileSpreadsheet, Zap, Loader2, Info, Activity, Grid3x3, MousePointer2
+    Zap, Loader2, Info, Activity, Grid3x3, X, RefreshCcw
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, BarChart, Bar,
-    PieChart as RePie, Pie, Cell, Legend, LineChart, Line, ScatterChart, Scatter, ZAxis, LabelList
+    PieChart as RePie, Pie, Cell, Legend, LineChart, Line, LabelList
 } from 'recharts';
 import DashboardSidebar from "../components/DashboardSidebar";
 import { dataService } from "../services/dataService";
 
 const category_colours = ['#22c55e', '#3b82f6', '#a855f7', '#f59e0b', '#ef4444', '#06b6d4'];
+
+const CreateChartModal = ({ isOpen, onClose, accounts, config, setConfig, onCreate }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+
+            {/* Content */}
+            <div className="relative bg-background-secondary w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                <div className="p-8 space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-black text-white uppercase tracking-tight">Chart Builder</h2>
+                        <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+                            <Plus className="rotate-45" size={24} />
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* Select Template Type */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Visual Style</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {['Bar', 'Line', 'Area'].map(type => (
+                                    <button
+                                        key={type}
+                                        onClick={() => setConfig({ ...config, type })}
+                                        className={`py-3 rounded-xl border font-bold text-xs transition-all ${config.type === type ? 'bg-accent-main border-accent-main text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Select Source */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Data Source</label>
+                            <select
+                                value={config.source}
+                                onChange={(e) => setConfig({ ...config, source: e.target.value })}
+                                className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-accent-main/20 outline-none cursor-pointer"
+                            >
+                                <option value="all">All Transactions</option>
+                                <optgroup label="Specific Accounts">
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name}</option>
+                                    ))}
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        {/* Date Selection */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">From</label>
+                                <input
+                                    type="date"
+                                    value={config.dateStart}
+                                    onChange={(e) => setConfig({ ...config, dateStart: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white color-scheme-dark"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">To</label>
+                                <input
+                                    type="date"
+                                    value={config.dateEnd}
+                                    onChange={(e) => setConfig({ ...config, dateEnd: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white color-scheme-dark"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={onCreate}
+                        className="w-full py-4 bg-accent-main text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-accent-main/20 hover:scale-[1.02] transition-all"
+                    >
+                        Generate Custom Insight
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const DashboardInsights = ({ session }) => {
     const [selectedTemplate, setSelectedTemplate] = useState("Spending Trend");
@@ -54,16 +140,31 @@ const DashboardInsights = ({ session }) => {
     }, [userId]);
 
     const filteredTransactions = useMemo(() => {
+        let data = transactions;
+
+        // Apply Custom Modal Filters if "Custom View" is active
+        if (selectedTemplate === "Custom View") {
+            if (customConfig.source !== 'all') {
+                data = data.filter(t => t.account_id === customConfig.source);
+            }
+            if (customConfig.dateStart) {
+                data = data.filter(t => new Date(t.created_at) >= new Date(customConfig.dateStart));
+            }
+            if (customConfig.dateEnd) {
+                data = data.filter(t => new Date(t.created_at) <= new Date(customConfig.dateEnd));
+            }
+            return data;
+        }
+
         const now = new Date();
         let startDate = new Date();
-
         if (timeFrame === '7d') startDate.setDate(now.getDate() - 7);
         else if (timeFrame === '30d') startDate.setDate(now.getDate() - 30);
         else if (timeFrame === 'MTD') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         else if (timeFrame === '1Y') startDate.setFullYear(now.getFullYear() - 1);
 
-        return transactions.filter(t => new Date(t.created_at) >= startDate);
-    }, [transactions, timeFrame]);
+        return data.filter(t => new Date(t.created_at) >= startDate);
+    }, [transactions, timeFrame, selectedTemplate, customConfig]);
 
     const trendData = useMemo(() => {
         const groups = filteredTransactions
@@ -73,43 +174,30 @@ const DashboardInsights = ({ session }) => {
                 acc[date] = (acc[date] || 0) + Math.abs(t.amount);
                 return acc;
             }, {});
-
         return Object.keys(groups).map(date => ({ date, amount: groups[date] }));
     }, [filteredTransactions]);
 
     const categoryData = useMemo(() => {
-        const groups = filteredTransactions
-            .filter(t => t.amount < 0)
-            .reduce((acc, t) => {
-                const name = t.category?.name || "Other";
-                acc[name] = (acc[name] || 0) + Math.abs(t.amount);
-                return acc;
-            }, {});
-
+        const groups = filteredTransactions.filter(t => t.amount < 0).reduce((acc, t) => {
+            const name = t.category?.name || "Other";
+            acc[name] = (acc[name] || 0) + Math.abs(t.amount);
+            return acc;
+        }, {});
         return Object.keys(groups).map((name, index) => ({
-            name,
-            value: groups[name],
-            fill: category_colours[index % category_colours.length]
+            name, value: groups[name], fill: category_colours[index % category_colours.length]
         })).sort((a, b) => b.value - a.value);
     }, [filteredTransactions]);
 
     const varianceData = useMemo(() => {
-        return budgets.map(b => ({
-            name: b.category?.name || "Budget",
-            Allocated: Number(b.limit_amount) || 0,
-            Actual: Number(b.spent) || 0,
-        }));
+        return budgets.map(b => ({ name: b.category?.name || "Budget", Allocated: Number(b.limit_amount) || 0, Actual: Number(b.spent) || 0 }));
     }, [budgets]);
 
     const heatmapData = useMemo(() => {
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const data = days.map((day) => ({ day, value: 0 }));
-
+        const data = days.map(day => ({ day, value: 0 }));
         filteredTransactions.filter(t => t.amount < 0).forEach(t => {
             const dayIdx = new Date(t.created_at).getDay();
-            if (data[dayIdx]) {
-                data[dayIdx].value += Math.abs(t.amount);
-            }
+            if (data[dayIdx]) data[dayIdx].value += Math.abs(t.amount);
         });
         return data;
     }, [filteredTransactions]);
@@ -122,92 +210,6 @@ const DashboardInsights = ({ session }) => {
         { name: "Spending Heatmap", icon: Grid3x3, desc: "Spending by day of week" },
     ];
 
-    const CreateChartModal = ({ isOpen, onClose, accounts, config, setConfig, onCreate }) => {
-        if (!isOpen) return null;
-
-        return (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-
-                {/* Content */}
-                <div className="relative bg-background-secondary w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-                    <div className="p-8 space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-black text-white uppercase tracking-tight">Chart Builder</h2>
-                            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-                                <Plus className="rotate-45" size={24} />
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {/* Select Template Type */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Visual Style</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {['Bar', 'Line', 'Area'].map(type => (
-                                        <button
-                                            key={type}
-                                            onClick={() => setConfig({ ...config, type })}
-                                            className={`py-3 rounded-xl border font-bold text-xs transition-all ${config.type === type ? 'bg-accent-main border-accent-main text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
-                                        >
-                                            {type}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Select Source */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Data Source</label>
-                                <select
-                                    value={config.source}
-                                    onChange={(e) => setConfig({ ...config, source: e.target.value })}
-                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-accent-main/20 outline-none cursor-pointer"
-                            >
-                                    <option value="all">All Transactions</option>
-                                    <optgroup label="Specific Accounts">
-                                        {accounts.map(acc => (
-                                            <option key={acc.id} value={acc.id}>{acc.name}</option>
-                                        ))}
-                                    </optgroup>
-                                </select>
-                            </div>
-
-                            {/* Date Selection */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">From</label>
-                                    <input
-                                        type="date"
-                                        value={config.dateStart}
-                                        onChange={(e) => setConfig({ ...config, dateStart: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white color-scheme-dark"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">To</label>
-                                    <input
-                                        type="date"
-                                        value={config.dateEnd}
-                                        onChange={(e) => setConfig({ ...config, dateEnd: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white color-scheme-dark"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={onCreate}
-                            className="w-full py-4 bg-accent-main text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-accent-main/20 hover:scale-[1.02] transition-all"
-                        >
-                            Generate Custom Insight
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="flex bg-background-tertiary min-h-screen">
             <DashboardSidebar />
@@ -215,19 +217,17 @@ const DashboardInsights = ({ session }) => {
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-1">
                         <h1 className="text-3xl font-black text-white tracking-tight">Financial Insights</h1>
+                        <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">Engine: {selectedTemplate === "Custom View" ? "User Defined" : "Standard Template"}</p>
                     </div>
                     <div className="flex gap-3">
-                        <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-white/5 shadow-inner">
-                            {['7d', '30d', 'MTD', '1Y'].map((t) => (
-                                <button key={t} onClick={() => setTimeFrame(t)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${timeFrame === t ? 'bg-accent-main text-white' : 'text-gray-500 hover:text-white'}`}>{t}</button>
-                            ))}
-                        </div>
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="flex items-center gap-2 px-6 py-3 bg-background-secondary text-white font-black rounded-xl shadow-2xl hover:scale-105 transition-all text-xs border border-white/10"
-                        >
-                            <Plus size={18} /> Create Custom Chart
-                        </button>
+                        {selectedTemplate !== "Custom View" && (
+                            <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-white/5">
+                                {['7d', '30d', 'MTD', '1Y'].map(t => (
+                                    <button key={t} onClick={() => setTimeFrame(t)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${timeFrame === t ? 'bg-accent-main text-white' : 'text-gray-500 hover:text-white'}`}>{t}</button>
+                                ))}
+                            </div>
+                        )}
+                        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-accent-secondary text-white font-black rounded-xl text-xs shadow-lg hover:scale-105 active:scale-95"><Plus size={18} /> Create Custom</button>
                         <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl transition-all text-xs shadow-lg hover:scale-105 active:scale-95"><Download size={18} /> Export Data</button>
                     </div>
                 </header>
@@ -242,22 +242,26 @@ const DashboardInsights = ({ session }) => {
                                         <div className="flex items-center gap-3"><temp.icon size={16} /><span className="text-[11px] font-black uppercase tracking-widest">{temp.name}</span></div>
                                     </button>
                                 ))}
+                                {selectedTemplate === "Custom View" && (
+                                    <button onClick={() => setSelectedTemplate("Spending Trend")} className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl bg-white/10 text-white border border-white/10 animate-pulse hover:bg-red-500/20 transition-all">
+                                        <RefreshCcw size={16} className="text-accent-main" />
+                                        <span className="text-[11px] font-black uppercase tracking-widest">Exit Custom View</span>
+                                    </button>
+                                )}
                             </nav>
                         </div>
 
                         {/* Quick Stats Widget */}
                         <div className="bg-background-secondary rounded-3xl p-6 border border-white/10 shadow-xl">
-                            <p className="text-accent-main font-black text-[10px] uppercase tracking-widest mb-6 flex items-center gap-2">
-                                <Info size={14} /> Quick Stats
-                            </p>
+                            <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-6 flex items-center gap-2"><Info size={14} className="text-accent-main" /> Snapshot</p>
                             <div className="space-y-5">
                                 <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                                    <span className="text-[11px] text-white font-bold uppercase tracking-tight">Daily Avg.</span>
+                                    <span className="text-[11px] text-gray-400 font-bold uppercase">Average</span>
                                     <span className="text-sm font-black text-white">£{(trendData.length > 0 ? trendData.reduce((a, b) => a + b.amount, 0) / trendData.length : 0).toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[11px] text-white font-bold uppercase tracking-tight">Active Days</span>
-                                    <span className="text-sm font-black text-accent-main">{trendData.length}</span>
+                                    <span className="text-[11px] text-gray-400 font-bold uppercase">Filtered Transactions</span>
+                                    <span className="text-sm font-black text-accent-main">{filteredTransactions.length}</span>
                                 </div>
                             </div>
                         </div>
@@ -267,60 +271,78 @@ const DashboardInsights = ({ session }) => {
                         <div className="bg-background-secondary rounded-[2.5rem] p-10 border border-white/10 h-[550px] flex flex-col shadow-2xl relative">
                             <h2 className="text-2xl font-black text-white mb-10 tracking-tight">{selectedTemplate}</h2>
                             <div className="flex-1 w-full min-h-0 relative">
-                                {isLoading ? <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin" /></div> : (
+                                {isLoading ? <div className="h-full flex items-center justify-center text-gray-500 gap-3"><Loader2 className="animate-spin" /></div> : (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        {selectedTemplate === "Spending Trend" ? (
+                                        {selectedTemplate === "Custom View" ? (
+                                            customConfig.type === 'Area' ? (
+                                                <AreaChart data={trendData}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                                    <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
+                                                    <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
+                                                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
+                                                    <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fill="#22c55e" fillOpacity={0.15} />
+                                                </AreaChart>
+                                            ) : customConfig.type === 'Line' ? (
+                                                <LineChart data={trendData}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                                    <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
+                                                    <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
+                                                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
+                                                    <Line type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
+                                                </LineChart>
+                                            ) : (
+                                                <BarChart data={trendData}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                                    <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
+                                                    <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
+                                                    <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
+                                                    <Bar dataKey="amount" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                                                </BarChart>
+                                            )
+                                        ) : selectedTemplate === "Spending Trend" ? (
                                             <AreaChart data={trendData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10, fontWeight: 'bold' }} dy={10} />
-                                                <YAxis tick={{ fill: '#fff', fontSize: 10, fontWeight: 'bold' }} tickFormatter={(v) => `£${v}`} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} labelStyle={{ color: '#fff', fontWeight: 'bold' }} formatter={(v) => [`£${v}`, 'Spent']} />
+                                                <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
+                                                <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
                                                 <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fill="#22c55e" fillOpacity={0.15} />
                                             </AreaChart>
                                         ) : selectedTemplate === "Daily Line" ? (
                                             <LineChart data={trendData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10, fontWeight: 'bold' }} />
-                                                <YAxis tick={{ fill: '#fff', fontSize: 10, fontWeight: 'bold' }} tickFormatter={(v) => `£${v}`} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff', fontWeight: 'bold' }} />
+                                                <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
+                                                <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} />
                                                 <Line type="stepAfter" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
                                             </LineChart>
                                         ) : selectedTemplate === "Category Mix" ? (
                                             <RePie>
-                                                <Pie data={categoryData} dataKey="value" cx="50%" cy="45%" outerRadius={110} label={({ name, value }) => `${name}: £${value.toFixed(0)}`} stroke="none">
+                                                <Pie data={categoryData} dataKey="value" cx="50%" cy="45%" outerRadius={120} label={({ name, value }) => `${name}: £${value.toFixed(0)}`} stroke="none">
                                                     {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
                                                 </Pie>
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
-                                                <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px', fontSize: '10px' }} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} />
+                                                <Legend verticalAlign="bottom" />
                                             </RePie>
+                                        ) : selectedTemplate === "Spending Heatmap" ? (
+                                            <BarChart data={heatmapData} layout="vertical" margin={{ left: 40 }}>
+                                                <XAxis type="number" hide />
+                                                <YAxis dataKey="day" type="category" axisLine={false} tickLine={false} tick={{ fill: '#fff', fontWeight: 'bold' }} />
+                                                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => `£${v.toFixed(2)}`} />
+                                                <Bar dataKey="value" radius={[0, 10, 10, 0]}>
+                                                    {heatmapData.map((entry, index) => (
+                                                        <Cell key={index} fill={entry.value > 500 ? '#ef4444' : entry.value > 100 ? '#f59e0b' : '#22c55e'} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
                                         ) : (
-                                            <BarChart
-                                                data={selectedTemplate === "Spending Heatmap" ? heatmapData : varianceData}
-                                                layout={selectedTemplate === "Spending Heatmap" ? "vertical" : "horizontal"}
-                                                margin={selectedTemplate === "Spending Heatmap" ? { left: 40, right: 40 } : { top: 10 }}
-                                            >
+                                            <BarChart data={varianceData} barGap={12}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                {selectedTemplate === "Spending Heatmap" ? (
-                                                    <>
-                                                        <XAxis type="number" hide />
-                                                        <YAxis dataKey="day" type="category" tick={{ fill: '#fff', fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                                        <Bar dataKey="value" radius={[0, 10, 10, 0]}>
-                                                            {heatmapData.map((entry, i) => (
-                                                                <Cell key={i} fill={entry.value > 500 ? '#ef4444' : entry.value > 100 ? '#f59e0b' : '#22c55e'} />
-                                                            ))}
-                                                            <LabelList dataKey="value" position="right" formatter={(v) => `£${v.toFixed(0)}`} style={{ fill: '#fff', fontSize: '10px', fontWeight: 'bold' }} />
-                                                        </Bar>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <XAxis dataKey="name" tick={{ fill: '#fff', fontSize: 10, fontWeight: 'bold' }} />
-                                                        <YAxis tick={{ fill: '#fff', fontSize: 10, fontWeight: 'bold' }} tickFormatter={(val) => `£${val}`} />
-                                                        <Bar dataKey="Allocated" fill="#00c3ff" radius={[6, 6, 0, 0]} />
-                                                        <Bar dataKey="Actual" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                                                        <Legend verticalAlign="top" align="right" />
-                                                    </>
-                                                )}
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: 'none', borderRadius: '12px' }} labelStyle={{ color: '#fff', fontWeight: 'bold' }} />
+                                                <XAxis dataKey="name" tick={{ fill: '#fff', fontSize: 10 }} />
+                                                <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(val) => `£${val}`} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
+                                                <Legend verticalAlign="top" align="right" />
+                                                <Bar dataKey="Allocated" fill="#334155" radius={[6, 6, 0, 0]} />
+                                                <Bar dataKey="Actual" fill="#22c55e" radius={[6, 6, 0, 0]} />
                                             </BarChart>
                                         )}
                                     </ResponsiveContainer>
@@ -330,36 +352,23 @@ const DashboardInsights = ({ session }) => {
 
                         {/* Recommendation Card */}
                         <div className="bg-background-secondary border border-white/10 p-8 rounded-[2.5rem] flex items-center gap-8 shadow-2xl relative overflow-hidden group">
-                            <div className="w-16 h-16 bg-accent-main/20 rounded-[1.5rem] flex items-center justify-center text-accent-main shrink-0 backdrop-blur-sm">
-                                <Zap size={32} />
-                            </div>
+                            <div className="w-16 h-16 bg-accent-main/20 rounded-[1.5rem] flex items-center justify-center text-accent-main shrink-0 backdrop-blur-sm"><Zap size={32} /></div>
                             <div className="space-y-1 relative z-10">
-                                <h3 className="text-sm font-black text-white uppercase tracking-widest">
-                                    Intelligence Insight
-                                </h3>
-                                <p className="text-white font-bold text-xs leading-relaxed max-w-xl">
-                                    {selectedTemplate === "Budget Variance"
-                                        ? `Efficiency Score: ${varianceData.length > 0 ? Math.round((varianceData.reduce((a, b) => a + b.Actual, 0) / varianceData.reduce((a, b) => a + (b.Allocated || 1), 0)) * 100) : 0}%. You are managing your allocations effectively.`
-                                        : `Spend Velocity: £${(trendData.reduce((a, b) => a + b.amount, 0) / (trendData.length || 1)).toFixed(2)}/day. Your top expense is ${categoryData[0]?.name || 'uncategorized'}.`
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest">{selectedTemplate === "Custom View" ? "Analysis Parameters Verified" : "Fiscal Intelligence"}</h3>
+                                <p className="text-white/80 text-xs font-bold leading-relaxed max-w-xl">
+                                    {selectedTemplate === "Custom View"
+                                        ? `Custom view active for ${customConfig.source === 'all' ? 'all accounts' : 'selected account'}. Reviewing data from ${customConfig.dateStart || 'all time'} to ${customConfig.dateEnd || 'present'}.`
+                                        : `Spend Velocity: £${(trendData.reduce((a, b) => a + b.amount, 0) / (trendData.length || 1)).toFixed(2)}/day.`
                                     }
                                 </p>
                             </div>
                         </div>
-                        {/* Create Card */}
-                        <CreateChartModal
-                            isOpen={isModalOpen}
-                            onClose={() => setIsModalOpen(false)}
-                            accounts={accounts}
-                            config={customConfig}
-                            setConfig={setCustomConfig}
-                            onCreate={() => {
-                                setSelectedTemplate("Custom View");
-                                setIsModalOpen(false);
-                            }}
-                        />
                     </section>
                 </div>
             </main>
+
+            {/* Create Card */}
+            <CreateChartModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} accounts={accounts} config={customConfig} setConfig={setCustomConfig} onCreate={() => { setSelectedTemplate("Custom View"); setIsModalOpen(false); }} />
         </div>
     );
 };

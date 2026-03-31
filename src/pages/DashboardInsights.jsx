@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     BarChart3, PieChart, TrendingUp, Download, Plus, Filter,
-    Zap, Loader2, Info, Activity, Grid3x3, RefreshCcw, FileImage, FileJson
+    Zap, Loader2, Info, Activity, Grid3x3, RefreshCcw, FileImage,
+    FileJson, TrendingDown, AlertCircle, Target
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -229,6 +230,47 @@ const DashboardInsights = ({ session }) => {
         { name: "Spending Heatmap", icon: Grid3x3, desc: "Spending by day of week" },
     ];
 
+    const insightsCalc = useMemo(() => {
+        if (filteredTransactions.length === 0) return [];
+
+        const totalSpending = trendData.reduce((a, b) => a + b.amount, 0);
+        const dailyAvg = totalSpending / (trendData.length || 1);
+        const topCat = categoryData[0];
+        const overBudgets = varianceData.filter(v => v.Actual > v.Allocated).length;
+        const largestTx = [...filteredTransactions].sort((a, b) => a.amount - b.amount)[0];
+
+        return [
+            {
+                title: "Daily Average",
+                value: `£${dailyAvg.toFixed(2)}`,
+                desc: "What you spend on average each day.",
+                icon: TrendingDown,
+                color: "text-blue-400"
+            },
+            {
+                title: "Biggest Expenses",
+                value: topCat?.name || "None",
+                desc: `You spend the most on ${topCat?.name || 'this area'}.`,
+                icon: PieChart,
+                color: "text-purple-400"
+            },
+            {
+                title: "Budget Status",
+                value: overBudgets > 0 ? `${overBudgets} Over Limit` : "All on Track",
+                desc: overBudgets > 0 ? "You've spent more than planned." : "You are staying under your limits!",
+                icon: overBudgets > 0 ? AlertCircle : CheckCircle2,
+                color: overBudgets > 0 ? "text-red-500" : "text-accent-main"
+            },
+            {
+                title: "Largest Spend",
+                value: `£${Math.abs(largestTx?.amount || 0).toFixed(0)}`,
+                desc: `A one-off cost for ${largestTx?.description?.toLowerCase()}.`,
+                icon: Target,
+                color: "text-orange-400"
+            }
+        ];
+    }, [trendData, categoryData, varianceData, filteredTransactions]);
+
     return (
         <div className="flex bg-background-tertiary min-h-screen">
             <DashboardSidebar />
@@ -383,17 +425,23 @@ const DashboardInsights = ({ session }) => {
                         </div>
 
                         {/* Recommendation Card */}
-                        <div className="bg-background-secondary border border-white/10 p-8 rounded-[2.5rem] flex items-center gap-8 shadow-2xl relative overflow-hidden group">
-                            <div className="w-16 h-16 bg-accent-main/20 rounded-[1.5rem] flex items-center justify-center text-accent-main shrink-0 backdrop-blur-sm"><Zap size={32} /></div>
-                            <div className="space-y-1 relative z-10">
-                                <h3 className="text-sm font-black text-white uppercase tracking-widest">{selectedTemplate === "Custom View" ? "Analysis Parameters Verified" : "Fiscal Intelligence"}</h3>
-                                <p className="text-white/80 text-xs font-bold leading-relaxed max-w-xl">
-                                    {selectedTemplate === "Custom View"
-                                        ? `Custom view active for ${customConfig.source === 'all' ? 'all accounts' : 'selected account'}. Reviewing data from ${customConfig.dateStart || 'all time'} to ${customConfig.dateEnd || 'present'}.`
-                                        : `Spend Velocity: £${(trendData.reduce((a, b) => a + b.amount, 0) / (trendData.length || 1)).toFixed(2)}/day.`
-                                    }
-                                </p>
-                            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {insightsCalc.map((insight, idx) => (
+                                <div key={idx} className="bg-background-secondary border border-white/10 p-6 rounded-[2rem] hover:scale-[1.02] transition-all group relative overflow-hidden">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className={`p-3 rounded-2xl bg-white/5 ${insight.color}`}>
+                                            <insight.icon size={20} />
+                                        </div>
+                                        <Zap size={14} className="text-white/10 group-hover:text-accent-main transition-colors" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">{insight.title}</p>
+                                        <h3 className="text-xl font-black text-white">{insight.value}</h3>
+                                        <p className="text-[10px] text-gray-500 font-bold leading-tight">{insight.desc}</p>
+                                    </div>
+                                    <div className={`absolute -bottom-4 -right-4 w-12 h-12 blur-2xl opacity-20 bg-current ${insight.color}`}></div>
+                                </div>
+                            ))}
                         </div>
                     </section>
                 </div>

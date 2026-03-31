@@ -5,26 +5,19 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import DashboardSidebar from "../components/DashboardSidebar";
-import { TrendingUp, PieChart, Home, Car, ShoppingBag, Utensils, Plus, ChevronRight, BarChart3, Clock, ArrowUpRight, Wallet } from 'lucide-react';
+import {
+    PieChart, Plus, ChevronRight, BarChart3,
+    Clock, ArrowUpRight, Wallet, Loader2
+} from 'lucide-react';
 import { useLiveQuery } from "dexie-react-hooks";
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid,
+    Tooltip, ResponsiveContainer, PieChart as RePie, Pie, Cell, Legend, BarChart, Bar
+} from 'recharts';
 import { db } from "../lib/db";
 import { dataService } from "../services/dataService";
 
-// Sub Components
-const GraphContainer = ({ mode, data }) => (
-    <div className="h-96 w-full bg-white/5 rounded-3xl flex items-center justify-center border border-dashed border-white/10 relative overflow-hidden transition-all hover:border-white/20">
-        {!data ? (
-            <div className="flex flex-col items-center gap-2 opacity-40">
-                <BarChart3 size={48} className="text-gray-500" />
-                <span className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">
-                    Awaiting {mode === 'spend' ? 'Spending' : 'Breakdown'} Data
-                </span>
-            </div>
-        ) : (
-            <div className="text-white font-bold">Chart Data Visualized Here</div>
-        )}
-    </div>
-);
+const category_colours = ['#22c55e', '#3b82f6', '#a855f7', '#f59e0b', '#ef4444', '#06b6d4'];
 
 const TransactionList = ({ transactions, loading }) => {
     if (loading) return <div className="p-10 text-center text-gray-500 text-xs font-bold animate-pulse">Fetching records...</div>;
@@ -94,9 +87,7 @@ const BudgetCard = ({ budget }) => {
 
 // Main Page
 const DashboardOverview = ({ session }) => {
-    const [chartMode, setChartMode] = useState('spend');
     const [storageMode, setStorageMode] = useState('loading');
-
     const [cloudData, setCloudData] = useState({ transactions: [], budgets: [], accounts: [] });
     const userId = session?.user?.id;
 
@@ -128,6 +119,8 @@ const DashboardOverview = ({ session }) => {
         refreshData();
     }, [userId]);
 
+
+    // Transaction, Budgets, Accounts Logic
     const transactions = storageMode === 'cloud' ? cloudData.transactions : (localTransactions || []);
     const budgets = storageMode === 'cloud' ? cloudData.budgets : (localBudgets || []);
     const accounts = storageMode === 'cloud' ? cloudData.accounts : (localAccounts || []);
@@ -152,13 +145,48 @@ const DashboardOverview = ({ session }) => {
         return Math.max(0, remaining / daysLeft);
     }, [budgets]);
 
+    // Charts Logic
+    const trendData = useMemo(() => {
+        if (!transactions || transactions.length === 0) return [];
+        const groups = transactions.filter(t => t.amount < 0).reduce((acc, t) => {
+            const dateKey = new Date(t.created_at).toISOString().split('T')[0];
+            acc[dateKey] = (acc[dateKey] || 0) + Math.abs(t.amount);
+            return acc;
+        }, {});
+        return Object.keys(groups).sort((a, b) => a.localeCompare(b)).map(dateKey => ({
+            date: new Date(dateKey).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+            amount: groups[dateKey]
+        })).slice(-7);
+    }, [transactions]);
+
+    const categoryData = useMemo(() => {
+        if (!transactions || transactions.length === 0) return [];
+        const groups = transactions.filter(t => t.amount < 0).reduce((acc, t) => {
+            const name = t.category?.name || "Other";
+            acc[name] = (acc[name] || 0) + Math.abs(t.amount);
+            return acc;
+        }, {});
+        return Object.keys(groups).map((name, index) => ({
+            name, value: groups[name], fill: category_colours[index % category_colours.length]
+        })).sort((a, b) => b.value - a.value).slice(0, 6);
+    }, [transactions]);
+
+    const varianceData = useMemo(() => {
+        if (!budgets || budgets.length === 0) return [];
+        return budgets.slice(0, 5).map(b => ({
+            name: b.category?.name || "Budget",
+            Allocated: Number(b.limit_amount) || 0,
+            Actual: Number(b.spent) || 0,
+        }));
+    }, [budgets]);
+
     return (
         <div className="flex bg-background-tertiary min-h-screen">
             <DashboardSidebar />
             <main className="flex-1 p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-black text-white leading-tight">Overview</h1>
+                        <h1 className="text-3xl font-black text-white tracking-tight">Bank Accounts</h1>
                         <p className="text-white text-[10px] font-bold uppercase tracking-[0.2em]">
                             Storage: <span className={storageMode === 'cloud' ? 'text-white' : 'text-white'}>{storageMode}</span>
                         </p>
@@ -183,21 +211,54 @@ const DashboardOverview = ({ session }) => {
                     </div>
                 </header>
 
-                <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 shadow-2xl">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-xl font-bold text-white">Analytics</h2>
-                        <div className="bg-black/20 p-1 rounded-xl flex">
-                            {['spend', 'breakdown'].map(m => (
-                                <button key={m} onClick={() => setChartMode(m)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${chartMode === m ? 'bg-accent-main text-white' : 'text-gray-500 hover:text-white'}`}>
-                                    {m}
-                                </button>
-                            ))}
+                {/* Charts Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Budget Spend */}
+                    <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 shadow-2xl">
+                        <h2 className="text-sm font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2 text-accent-main"><BarChart3 size={16} /> Budget Performance</h2>
+                        <div className="h-80 w-full min-h-0 relative">
+                            {isLoading ? <div className="h-full flex items-center justify-center text-gray-500 text-[10px] font-bold uppercase tracking-widest">Syncing...</div> : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={trendData.length > 0 ? trendData : varianceData} margin={{ left: -20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                        <XAxis dataKey="date" tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} dy={10} />
+                                        <YAxis tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} tickFormatter={(v) => `£${v}`} />
+                                        <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
+                                        <Bar dataKey="amount" fill="#22c55e" radius={[6, 6, 0, 0]} name="Spent" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
-                    </div>
-                    <div className="h-64 border border-dashed border-white/10 rounded-2xl flex items-center justify-center text-gray-600 text-xs font-bold uppercase tracking-widest">
-                        Chart Integration Pending
-                    </div>
-                </section>
+                    </section>
+
+                    {/* Expense Chart */}
+                    <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 shadow-2xl">
+                        <h2 className="text-sm font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2 text-accent-main"><PieChart size={16} /> Expense Breakdown</h2>
+                        <div className="h-80 w-full min-h-0 relative">
+                            {isLoading ? <div className="h-full flex items-center justify-center text-gray-500 text-[10px] font-bold uppercase tracking-widest animate-pulse">Syncing...</div> : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RePie>
+                                        <Pie
+                                            data={categoryData}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cx="50%" cy="45%"
+                                            innerRadius={0}
+                                            outerRadius={100}
+                                            stroke="#121212"
+                                            strokeWidth={3}
+                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                        >
+                                            {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: 'none', borderRadius: '12px' }} />
+                                        <Legend iconType="circle" verticalAlign="bottom" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', color: '#fff' }} />
+                                    </RePie>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                    </section>
+                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 space-y-6 shadow-2xl">

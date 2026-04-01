@@ -675,10 +675,10 @@ export const dataService = {
     // Notifications
     async fetchNotifications(userId) {
         const mod = await this.getStorageMode(userId);
-        if (mod === 'cloud') {
+        if (mode === 'cloud') {
             const { data } = await supabase
                 .from('notifications')
-                .schema('*')
+                .select('*')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false });
             return data || [];
@@ -710,17 +710,40 @@ export const dataService = {
     },
 
     // Real-time Logic
-    async checkBudgetThresholds(userid, categoryId) {
-        const budgets = await this.fetchBudgets(userid);
-        const targetBudget = budgets.find(b => b.category_id === categoryId);
+    async checkBudgetThresholds(userId, categoryId) {
+        const budgets = await this.fetchBudgets(userId);
+        const target = budgets.find(b => b.category_id === categoryId);
 
-        if (!targetBudget) return;
+        if (!target || !target.limit_amount) return;
 
-        const perecent = (targetBudget.spent / targetBudget.amount) * 100;
+        const spent = Number(target.spent) || 0;
+        const limit = Number(target.limit_amount);
+        const percent = (spent / limit) * 100;
 
         if (percent >= 80) {
-            const message = `Budget Alert: You've reached ${Math.round(percent)}% of your ${targetBudget.category?.name} budget.`;
+            const message = `Budget Alert: You've used ${Math.round(percent)}% of your ${target.category?.name || 'assigned'} budget.`;
             await this.createNotification(userId, 'budget', message);
+        }
+    },
+
+    async updateLastLogin(userId) {
+        const now = new Date();
+        const mode = await this.getStorageMode(userId);
+
+        const profile = await this.fetchProfile(userId);
+        if (profile?.last_login_at) {
+            const lastLogin = new Date(profile.last_login_at);
+            const diffDays = Math.floor((now - lastLogin) / (1000 * 60 * 60 * 24));
+
+            if (diffDays >= 3) {
+                await this.createNotification(userId, 'nudge', "It's been 3 days! Upload your recent transactions to stay on track.");
+            }
+        }
+
+        if (mode === 'cloud') {
+            await supabase.from('profiles').update({ last_login_at: now.toISOString() }).eq('id', userId);
+        } else {
+            await db.profiles.update(userId, { last_login_at: now.toISOString() });
         }
     },
 
@@ -731,15 +754,14 @@ export const dataService = {
             user_id: userId,
             type,
             message,
-            read: false,
+            is_read: false,
             created_at: new Date().toISOString()
         };
 
         if (mode === 'cloud') {
-            await supabase.from('notifications').insert(newNotification);
-        }
-        else {
-            await db.notifications.add(newNotification);
+            await supabase.from('notifications').insert([newNote]);
+        } else {
+            await db.notifications.add(newNote);
         }
     },
 

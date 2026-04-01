@@ -31,6 +31,7 @@ export const dataService = {
             if (!error) {
                 await db.transactions.where('id').anyOf(offlineTxs.map(t => t.id)).modify({ synced: 1 });
                 await this.updateLastSynced(userId);
+                await this.triggerSyncAlert(userId, offlineTxs.length);
             }
         }
     },
@@ -80,6 +81,7 @@ export const dataService = {
                 db.savings_goals.where('user_id').equals(userId).delete(),
                 db.transactions.where('user_id').equals(userId).delete()
             ]);
+            await this.triggerSyncAlert(userId, txs.length);
             return { success: true };
         } catch (error) {
             console.error("Migration error: ", error);
@@ -423,6 +425,7 @@ export const dataService = {
         }
 
         await this.adjustAccountBalance(accountId, -amount, userId);
+        await this.checkGoalMilestones(userId, goalId);
     },
 
     // Accounts
@@ -785,6 +788,31 @@ export const dataService = {
         } else {
             await db.profiles.update(userId, { last_login_at: now.toISOString() });
         }
+    },
+
+    async checkGoalMilestones(userId, goalId) {
+        const goals = await this.fetchSavingsGoals(userId);
+        const goal = goals.find(g => g.id === goalId);
+        if (!goal) return;
+
+        const percent = (goal.current_amount / goal.target_amount) * 100;
+
+        let milestone = null;
+        if (percent >= 100) milestone = "Goal Completed!";
+        else if (percent >= 80) milestone = "Almost There! You've reached 80% of your goal.";
+        else if (percent >= 50) milestone = "Halfway Point! You've reached 50% of your goal.";
+
+        if (milestone) {
+            await this.createNotification(userId, 'nudge', `${milestone} for your "${goal.name}" fund.`);
+        }
+    },
+
+    async triggerSyncAlert(userId, count) {
+        await this.createNotification(
+            userId,
+            'system',
+            `Cloud Sync: ${count} transactions were moved to cloud storage.`
+        );
     }
 };
 

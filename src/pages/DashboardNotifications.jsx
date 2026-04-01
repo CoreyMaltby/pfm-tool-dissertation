@@ -47,6 +47,7 @@ const DashboardNotifications = ({ session }) => {
             case 'nudge': return { icon: Zap, color: 'text-accent-main', title: 'Financial Nudge' };
             case 'budget': return { icon: Wallet, color: 'text-yellow-500', title: 'Budget Alert' };
             case 'security': return { icon: ShieldCheck, color: 'text-blue-400', title: 'Security Update' };
+            case 'system': return { icon: Info, color: 'text-purple-400', title: 'System Update' };
             default: return { icon: Info, color: 'text-gray-400', title: 'Notification' };
         }
     };

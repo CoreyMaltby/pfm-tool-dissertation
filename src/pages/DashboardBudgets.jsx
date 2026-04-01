@@ -51,7 +51,7 @@ const DashboardBudgets = ({ session }) => {
 
     return (
         <div className="flex bg-background-tertiary min-h-screen">
-            <DashboardSidebar />
+            <DashboardSidebar session={session} />
             <main className="flex-1 p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-1">

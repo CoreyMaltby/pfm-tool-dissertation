@@ -189,9 +189,10 @@ export const dataService = {
             result = { ...txData, id };
         }
 
-        // Budget audit if expense
+        // Updates balance and checks budgets
         if (transaction.amount < 0) {
             await this.adjustAccountBalance(transaction.account_id, transaction.amount, userId);
+            await this.checkBudgetThresholds(userId, transaction.category_id);
         }
         return result;
     },
@@ -674,7 +675,7 @@ export const dataService = {
 
     // Notifications
     async fetchNotifications(userId) {
-        const mod = await this.getStorageMode(userId);
+        const mode = await this.getStorageMode(userId);
         if (mode === 'cloud') {
             const { data } = await supabase
                 .from('notifications')
@@ -692,21 +693,43 @@ export const dataService = {
     },
 
     async markAllRead(userId) {
-        const mod = await this.getStorageMode(userId);
-        if (mod === 'cloud') {
+        const mode = await this.getStorageMode(userId);
+        if (mode === 'cloud') {
             await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId);
         } else {
-            await db.notifications.where('user_id').equals(userId).modify({ read: true });
+            await db.notifications.where('user_id').equals(userId).modify({ is_read: true });
         }
     },
 
     async deleteNotification(id, userId) {
-        const mod = await this.getStorageMode(userId);
-        if (mod === 'cloud') {
+        const mode = await this.getStorageMode(userId);
+        if (mode === 'cloud') {
             await supabase.from('notifications').delete().eq('id', id)
         } else {
             await db.notifications.delete(id);
         }
+    },
+
+    async createNotification(userId, type, message) {
+        const mode = await this.getStorageMode(userId);
+        const newNote = {
+            id: crypto.randomUUID(),
+            user_id: userId,
+            type,
+            message,
+            is_read: false,
+            created_at: new Date().toISOString()
+        };
+
+        if (mode === 'cloud') {
+            await supabase.from('notifications').insert([newNote]);
+        } else {
+            await db.notifications.add(newNote);
+        }
+    },
+
+    async updateNotificationsOnTransaction(userId, prefs) {
+        await supabase.from('profiles').update({ notification_preferences: prefs }).eq('id', userId);
     },
 
     // Real-time Logic
@@ -745,27 +768,7 @@ export const dataService = {
         } else {
             await db.profiles.update(userId, { last_login_at: now.toISOString() });
         }
-    },
-
-    async createNotification(userId, type, message) {
-        const mode = await this.getStorageMode(userId);
-        const newNotification = {
-            id: crypto.randomUUID(),
-            user_id: userId,
-            type,
-            message,
-            is_read: false,
-            created_at: new Date().toISOString()
-        };
-
-        if (mode === 'cloud') {
-            await supabase.from('notifications').insert([newNote]);
-        } else {
-            await db.notifications.add(newNote);
-        }
-    },
-
-    async updateNotificationsOnTransaction(userId, prefs) {
-        await supabase.from('profiles').update({ notifications_preferences: prefs }).eq('id', userId);
     }
 };
+
+export default dataService;

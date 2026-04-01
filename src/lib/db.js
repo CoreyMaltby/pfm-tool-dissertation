@@ -10,7 +10,7 @@ db.version(3).stores({
   savings_goals: 'id, user_id, name, synced, updated_at',
   categories: 'id, user_id, name',
   merchants: 'id, name, default_cat_id',
-  notifications: 'id, user_id, type, created_at, is_read'
+  notifications: 'id, user_id, created_at'
 });
 
 // Helper to clear all local data

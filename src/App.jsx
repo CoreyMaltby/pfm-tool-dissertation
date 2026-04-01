@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useState } from 'react';
 import { supabase } from "./lib/supabaseClient.js";
+import { dataService } from "./services/dataService";
 
 //Components
 import Navbar from "./components/Navbar";
@@ -26,16 +27,18 @@ import DashboardAccounts from "./pages/DashboardAccounts.jsx";
 
 function App() {
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setLoading(false)
+      if (session) dataService.updateLastLogin(session.user.id);
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) dataService.updateLastLogin(session.user.id);
       setLoading(false);
     });
 
@@ -43,9 +46,11 @@ function App() {
   }, []);
 
   if (loading) {
-    return <div className="min-h-screen bg-background-main flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-accent-main border-t-transparent rounded-full animate-spin"></div>
-    </div>;
+    return (
+      <div className="min-h-screen bg-background-main flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-accent-main border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return (

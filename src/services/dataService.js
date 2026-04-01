@@ -171,13 +171,13 @@ export const dataService = {
 
     async saveTransaction(transaction, userId) {
         const mode = await this.getStorageMode(userId);
-        const isOnline = navigator.onLine;
+        let result;
 
-        if (mode === 'cloud' && isOnline) {
+        if (mode === 'cloud' && navigator.onLine) {
             const { data, error } = await supabase.from('transactions').insert([{ ...transaction }]).select();
             if (error) throw error;
             await db.transactions.put({ ...data[0], synced: 1, updated_at: new Date().toISOString() });
-            return data[0];
+            result = data[0];
         } else {
             const txData = {
                 ...transaction,
@@ -186,8 +186,14 @@ export const dataService = {
                 updated_at: new Date().toISOString()
             };
             const id = await db.transactions.put(txData);
-            return { ...txData, id };
+            result = { ...txData, id };
         }
+
+        // Budget audit if expense
+        if (transaction.amount < 0) {
+            await this.adjustAccountBalance(transaction.account_id, transaction.amount, userId);
+        }
+        return result;
     },
 
     async deleteTransaction(transaction, userId) {
@@ -643,7 +649,7 @@ export const dataService = {
         ]);
         if (mode === 'cloud') {
             await Promise.all([
-                supabase.from('transactions').delete().filter('account_id', 'in', 
+                supabase.from('transactions').delete().filter('account_id', 'in',
                     supabase.from('accounts').select('id').eq('user_id', userId)),
                 supabase.from('budgets').delete().eq('user_id', userId),
                 supabase.from('savings_goals').delete().eq('user_id', userId),
@@ -664,5 +670,80 @@ export const dataService = {
         if (error) throw error;
 
         await supabase.auth.signOut();
+    },
+
+    // Notifications
+    async fetchNotifications(userId) {
+        const mod = await this.getStorageMode(userId);
+        if (mod === 'cloud') {
+            const { data } = await supabase
+                .from('notifications')
+                .schema('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+            return data || [];
+        } else {
+            return await db.notifications
+                .where('user_id')
+                .equals(userId)
+                .reverse()
+                .toArray();
+        }
+    },
+
+    async markAllRead(userId) {
+        const mod = await this.getStorageMode(userId);
+        if (mod === 'cloud') {
+            await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId);
+        } else {
+            await db.notifications.where('user_id').equals(userId).modify({ read: true });
+        }
+    },
+
+    async deleteNotification(id, userId) {
+        const mod = await this.getStorageMode(userId);
+        if (mod === 'cloud') {
+            await supabase.from('notifications').delete().eq('id', id)
+        } else {
+            await db.notifications.delete(id);
+        }
+    },
+
+    // Real-time Logic
+    async checkBudgetThresholds(userid, categoryId) {
+        const budgets = await this.fetchBudgets(userid);
+        const targetBudget = budgets.find(b => b.category_id === categoryId);
+
+        if (!targetBudget) return;
+
+        const perecent = (targetBudget.spent / targetBudget.amount) * 100;
+
+        if (percent >= 80) {
+            const message = `Budget Alert: You've reached ${Math.round(percent)}% of your ${targetBudget.category?.name} budget.`;
+            await this.createNotification(userId, 'budget', message);
+        }
+    },
+
+    async createNotification(userId, type, message) {
+        const mode = await this.getStorageMode(userId);
+        const newNotification = {
+            id: crypto.randomUUID(),
+            user_id: userId,
+            type,
+            message,
+            read: false,
+            created_at: new Date().toISOString()
+        };
+
+        if (mode === 'cloud') {
+            await supabase.from('notifications').insert(newNotification);
+        }
+        else {
+            await db.notifications.add(newNotification);
+        }
+    },
+
+    async updateNotificationsOnTransaction(userId, prefs) {
+        await supabase.from('profiles').update({ notifications_preferences: prefs }).eq('id', userId);
     }
 };

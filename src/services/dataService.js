@@ -624,7 +624,7 @@ export const dataService = {
     async fetchProfile(userId) {
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, email, storage_mode')
+            .select('first_name, last_name, email, storage_mode, notification_preferences, last_login_at')
             .eq('id', userId)
             .single();
         if (error) throw error;
@@ -728,6 +728,14 @@ export const dataService = {
         }
     },
 
+    async updateNotificationPrefs(userId, prefs) {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ notification_preferences: prefs })
+            .eq('id', userId);
+        if (error) throw error;
+    },
+
     async updateNotificationsOnTransaction(userId, prefs) {
         await supabase.from('profiles').update({ notification_preferences: prefs }).eq('id', userId);
     },
@@ -752,17 +760,26 @@ export const dataService = {
     async updateLastLogin(userId) {
         const now = new Date();
         const mode = await this.getStorageMode(userId);
-
         const profile = await this.fetchProfile(userId);
+
         if (profile?.last_login_at) {
             const lastLogin = new Date(profile.last_login_at);
-            const diffDays = Math.floor((now - lastLogin) / (1000 * 60 * 60 * 24));
+            const diffTime = Math.abs(now - lastLogin);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            if (diffDays >= 3) {
-                await this.createNotification(userId, 'nudge', "It's been 3 days! Upload your recent transactions to stay on track.");
+            console.log(`[Auth Audit] Last login was ${diffDays} days ago.`);
+
+            if (diffDays >= 3 && profile.notification_preferences?.nudge !== false) {
+                console.log("[Auth Audit] Triggering Positive Nudge...");
+                await this.createNotification(
+                    userId,
+                    'nudge',
+                    "It's been 3 days! Upload your recent transactions to stay on track."
+                );
             }
         }
 
+        // Update the timestamp for the NEXT login check
         if (mode === 'cloud') {
             await supabase.from('profiles').update({ last_login_at: now.toISOString() }).eq('id', userId);
         } else {
@@ -772,3 +789,8 @@ export const dataService = {
 };
 
 export default dataService;
+
+if (typeof window !== 'undefined') {
+    window.dataService = dataService;
+    console.log("DataService has been attached to the window."); // Add this line to verify!
+}

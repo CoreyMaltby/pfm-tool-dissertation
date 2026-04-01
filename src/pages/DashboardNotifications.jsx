@@ -51,6 +51,7 @@ const DashboardNotifications = ({ session }) => {
         }
     };
 
+
     return (
         <div className="flex bg-background-tertiary min-h-screen">
             <DashboardSidebar />
@@ -60,7 +61,7 @@ const DashboardNotifications = ({ session }) => {
                 <header className="flex justify-between items-end">
                     <h1 className="text-4xl font-black text-white tracking-tight">Notifications</h1>
                     {notifications.length > 0 && (
-                        <button onClick={handleMarkAllRead} className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-accent-main hover:text-white transition-all flex items-center gap-2">
+                        <button onClick={handleMarkAllRead} className="flex items-center gap-2 px-6 py-3 bg-background-secondary text-white font-black rounded-xl border border-white/10 hover:scale-105 transition-all text-xs shadow-xl">
                             <CheckCheck size={16} /> Mark all read
                         </button>
                     )}
@@ -90,7 +91,7 @@ const DashboardNotifications = ({ session }) => {
                                                 </div>
                                                 <p className="text-xs text-gray-400 leading-relaxed">{note.message}</p>
                                             </div>
-                                            <button onClick={() => handleDelete(note.id)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-600 hover:text-red-400 transition-all"><Trash2 size={16} /></button>
+                                            <button onClick={() => handleDelete(note.id)} className="opacity-50 group-hover:opacity-100 p-2 text-white hover:text-red-400 transition-all"><Trash2 size={16} /></button>
                                         </div>
                                     );
                                 })}

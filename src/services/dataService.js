@@ -198,6 +198,7 @@ export const dataService = {
         if (transaction.amount < 0) {
             await this.adjustAccountBalance(transaction.account_id, transaction.amount, userId);
             await this.checkBudgetThresholds(userId, transaction.category_id);
+            await this.checkSpendingFrequency(userId, transaction.category_id);
         }
         return result;
     },
@@ -990,6 +991,37 @@ export const dataService = {
             console.error("[Analytics] Error in monthly summary engine:", err);
         } finally {
             this._monthlySummaryInProcess = false;
+        }
+    },
+
+    async checkSpendingFrequency(userId, categoryId) {
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000)).toISOString();
+        const mode = await this.getStorageMode(userId);
+        let recentTxs = [];
+
+        if (mode === 'cloud') {
+            const { data } = await supabase
+                .from('transactions')
+                .select('amount, category:categories(name)')
+                .eq('category_id', categoryId)
+                .gte('created_at', twentyFourHoursAgo);
+            recentTxs = data || [];
+        } else {
+            recentTxs = await db.transactions
+                .where('category_id').equals(categoryId)
+                .filter(tx => new Date(tx.created_at) >= new Date(twentyFourHoursAgo))
+                .toArray();
+        }
+
+        if (recentTxs.length >= 3) {
+            const categoryName = recentTxs[0]?.category?.name || "this category";
+
+            await this.createNotification(
+                userId,
+                'nudge',
+                `Activity Insight: You've recorded ${recentTxs.length} transactions in "${categoryName}" within the last 24 hours`
+            );
         }
     }
 };

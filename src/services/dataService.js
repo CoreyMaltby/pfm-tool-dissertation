@@ -748,6 +748,25 @@ export const dataService = {
         await supabase.from('profiles').update({ notification_preferences: prefs }).eq('id', userId);
     },
 
+    async cleanupNotifications(userId) {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const mode = await this.getStorageMode(userId);
+
+        if (mode === 'cloud') {
+            await supabase
+                .from('notifications')
+                .delete()
+                .eq('user_id', userId)
+                .lt('created_at', thirtyDaysAgo);
+        } else {
+            await db.notifications
+                .where('user_id').equals(userId)
+                .filter(n => n.created_at < thirtyDaysAgo)
+                .delete();
+        }
+        console.log("[System] Old notifications cleaned up.");
+    },
+
     // Real-time Logic
     async checkBudgetThresholds(userId, categoryId) {
         const budgets = await this.fetchBudgets(userId);

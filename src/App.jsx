@@ -46,6 +46,7 @@ function App() {
         dataService.updateLastLogin(session.user.id);
         dataService.generateWeeklySummary(session.user.id);
         dataService.generateMonthlySummary(session.user.id);
+        dataService.cleanupNotifications(session.user.id);
       };
 
       setLoading(false);

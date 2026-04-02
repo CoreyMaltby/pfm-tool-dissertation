@@ -900,6 +900,14 @@ export const dataService = {
                 .filter(t => t.amount > 0)
                 .reduce((sum, t) => sum + t.amount, 0);
 
+            const surplus = totalEarned - totalSpent;
+            let advice = "";
+
+            if (surplus > 50) {
+                const suggestion = (surplus * 0.2).toFixed(2);
+                advice = ` You have a £${surplus.toFixed(2)} surplus! Why not move £${suggestion} into your savings goals?`;
+            }
+
             // Update last summary timestamp
             if (mode === 'cloud') {
                 await supabase.from('profiles').update({ last_summary_at: now.toISOString() }).eq('id', userId);
@@ -909,7 +917,7 @@ export const dataService = {
 
             // Create notification with insights
             if (lastWeekTxs.length > 0) {
-                const message = `Weekly Wrap-up: You spent £${totalSpent.toFixed(2)} and earned £${totalEarned.toFixed(2)} over the last 7 days.`;
+                const message = `Weekly Wrap-up: You spent £${totalSpent.toFixed(2)} and earned £${totalEarned.toFixed(2)}.${advice}`;
                 await this.createNotification(userId, 'nudge', message);
             } else {
                 await this.createNotification(userId, 'nudge', "Weekly Wrap-up: No transactions recorded this week. Start tracking to see your insights!");

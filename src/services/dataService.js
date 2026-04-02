@@ -4,6 +4,7 @@ import { use } from 'react';
 
 export const dataService = {
     _summaryInProcess: false,
+    _monthlySumaryInProcess: false,
 
     // Storage Preferences
     async getStorageMode(userId) {
@@ -631,8 +632,7 @@ export const dataService = {
     async fetchProfile(userId) {
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, email, storage_mode, notification_preferences, last_login_at')
-            .eq('id', userId)
+            .select('first_name, last_name, email, storage_mode, notification_preferences, last_login_at, last_summary_at, last_monthly_summary_at')
             .single();
         if (error) throw error;
         return data;
@@ -919,6 +919,77 @@ export const dataService = {
             console.error("[Analytics] Error in summary engine:", err);
         } finally {
             this._summaryInProcess = false;
+        }
+    },
+
+    async generateMonthlySummary(userId) {
+        // Prevents multiple summaries
+        if (this._monthlySummaryInProcess) return;
+        this._monthlySummaryInProcess = true;
+
+        try {
+            const now = new Date();
+            const profile = await this.fetchProfile(userId);
+
+            const lastSummary = profile?.last_monthly_summary_at ? new Date(profile.last_monthly_summary_at) : null;
+            const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+
+            if (lastSummary && (now - lastSummary) < thirtyDaysInMs) {
+                console.log("[Analytics] Monthly summary not due yet.");
+                return;
+            }
+
+            console.log("[Analytics] Monthly Summary due! Aggregating 30 days of data...");
+
+            // Fetch transactions from the last 30 days
+            const thirtyDaysAgo = new Date(now.getTime() - thirtyDaysInMs).toISOString();
+            const mode = await this.getStorageMode(userId);
+            let lastMonthTxs = [];
+
+            // Fetch data
+            if (mode === 'cloud') {
+                const { data } = await supabase
+                    .from('transactions')
+                    .select('amount, accounts!inner(user_id)')
+                    .eq('accounts.user_id', userId)
+                    .gte('created_at', thirtyDaysAgo);
+                lastMonthTxs = data || [];
+            } else {
+                lastMonthTxs = await db.transactions
+                    .where('user_id').equals(userId)
+                    .filter(tx => new Date(tx.created_at) >= new Date(thirtyDaysAgo))
+                    .toArray();
+            }
+
+            // Calculate insights
+            const totalSpent = lastMonthTxs
+                .filter(t => t.amount < 0)
+                .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+            const totalEarned = lastMonthTxs
+                .filter(t => t.amount > 0)
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            // Update last summary timestamp
+            if (mode === 'cloud') {
+                await supabase.from('profiles').update({ last_monthly_summary_at: now.toISOString() }).eq('id', userId);
+            } else {
+                await db.profiles.update(userId, { last_monthly_summary_at: now.toISOString() });
+            }
+
+            // Create notification with insights
+            if (lastMonthTxs.length > 0) {
+                const message = `Monthly Review: In the last 30 days, you spent £${totalSpent.toFixed(2)} and brought in £${totalEarned.toFixed(2)}.`;
+                await this.createNotification(userId, 'nudge', message);
+            } else {
+                await this.createNotification(userId, 'nudge', "Monthly Review: No activity recorded this month. Let's start building better habits!");
+            }
+
+            console.log("[Analytics] Monthly summary successfully generated.");
+        } catch (err) {
+            console.error("[Analytics] Error in monthly summary engine:", err);
+        } finally {
+            this._monthlySummaryInProcess = false;
         }
     }
 };

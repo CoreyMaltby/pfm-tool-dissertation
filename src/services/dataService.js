@@ -454,6 +454,8 @@ export const dataService = {
                 await db.accounts.update(accountId, { current_balance: newBalance });
             }
         }
+
+        await this.checkLowBalance(userId, accountId);
     },
 
     async updateAccount(account, userId) {
@@ -813,12 +815,38 @@ export const dataService = {
             'system',
             `Cloud Sync: ${count} transactions were moved to cloud storage.`
         );
-    }
+    },
+
+    async checkLowBalance(userId, accountId) {
+        const mode = await this.getStorageMode(userId);
+        let account;
+
+        if (mode === 'cloud') {
+            const { data } = await supabase.from('accounts').select('name, current_balance').eq('id', accountId).single();
+            account = data;
+        } else {
+            account = await db.accounts.get(accountId);
+        }
+
+        if (!account) return;
+
+        const threshold = 100;
+        if (account.current_balance < threshold && account.current_balance >= 0) {
+            await this.createNotification(
+                userId,
+                'low_balance',
+                `Low Balance: Your "${account.name}" account is down to £${account.current_balance.toFixed(2)}`
+            );
+        }
+
+        else if (account.current_balance < 0) {
+            await this.createNotification(
+                userId,
+                'overdraft',
+                `Overdraft Alert: Your "${account.name}" account is overdrawn by £${Math.abs(account.current_balance).toFixed(2)}`
+            );
+        }
+    },
 };
 
 export default dataService;
-
-if (typeof window !== 'undefined') {
-    window.dataService = dataService;
-    console.log("DataService has been attached to the window."); // Add this line to verify!
-}

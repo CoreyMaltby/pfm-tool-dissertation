@@ -1,6 +1,6 @@
 // Main App Component
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from "./lib/supabaseClient.js";
 import { dataService } from "./services/dataService";
 
@@ -28,17 +28,26 @@ import DashboardAccounts from "./pages/DashboardAccounts.jsx";
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const hasInitialised = useRef(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session) dataService.updateLastLogin(session.user.id);
-      setLoading(false);
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) dataService.updateLastLogin(session.user.id);
+      if (event === 'SIGNED_OUT') {
+        hasInitialised.current = false;
+      }
+
+      if (session && !hasInitialised.current && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+        hasInitialised.current = true;
+
+        console.log(`[App] Initializing Logic for user: ${session.user.email} (Event: ${event})`);
+
+        dataService.updateLastLogin(session.user.id);
+        dataService.generateWeeklySummary(session.user.id);
+        dataService.syncOfflineChanges(session.user.id);
+      };
+
       setLoading(false);
     });
 

@@ -3,6 +3,8 @@ import { db } from '../lib/db';
 import { use } from 'react';
 
 export const dataService = {
+    _summaryInProcess: false,
+
     // Storage Preferences
     async getStorageMode(userId) {
         const { data } = await supabase.from('profiles').select('storage_mode').eq('id', userId).single();
@@ -847,6 +849,78 @@ export const dataService = {
             );
         }
     },
+
+    async generateWeeklySummary(userId) {
+        // Prevents multiple summaries
+        if (this._summaryInProcess) return;
+        this._summaryInProcess = true;
+
+        try {
+            const now = new Date();
+            const profile = await this.fetchProfile(userId);
+
+            const lastSummary = profile?.last_summary_at ? new Date(profile.last_summary_at) : null;
+            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+
+            if (lastSummary && (now - lastSummary) < sevenDaysInMs) {
+                console.log("[Analytics] Weekly summary not due yet. Next due in:",
+                    Math.ceil((sevenDaysInMs - (now - lastSummary)) / (1000 * 60 * 60)) + " hours");
+                return;
+            }
+
+            console.log("[Analytics] Summary due! Fetching last 7 days of data...");
+
+            // Fetch transactions from the last 7 days
+            const sevenDaysAgo = new Date(now.getTime() - sevenDaysInMs).toISOString();
+            const mode = await this.getStorageMode(userId);
+            let lastWeekTxs = [];
+
+            // Fetch data
+            if (mode === 'cloud') {
+                const { data } = await supabase
+                    .from('transactions')
+                    .select('amount, accounts!inner(user_id)')
+                    .eq('accounts.user_id', userId)
+                    .gte('created_at', sevenDaysAgo);
+                lastWeekTxs = data || [];
+            } else {
+                lastWeekTxs = await db.transactions
+                    .where('user_id').equals(userId)
+                    .filter(tx => new Date(tx.created_at) >= new Date(sevenDaysAgo))
+                    .toArray();
+            }
+
+            // Calculate insights
+            const totalSpent = lastWeekTxs
+                .filter(t => t.amount < 0)
+                .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+            const totalEarned = lastWeekTxs
+                .filter(t => t.amount > 0)
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            // Update last summary timestamp
+            if (mode === 'cloud') {
+                await supabase.from('profiles').update({ last_summary_at: now.toISOString() }).eq('id', userId);
+            } else {
+                await db.profiles.update(userId, { last_summary_at: now.toISOString() });
+            }
+
+            // Create notification with insights
+            if (lastWeekTxs.length > 0) {
+                const message = `Weekly Wrap-up: You spent £${totalSpent.toFixed(2)} and earned £${totalEarned.toFixed(2)} over the last 7 days.`;
+                await this.createNotification(userId, 'nudge', message);
+            } else {
+                await this.createNotification(userId, 'nudge', "Weekly Wrap-up: No transactions recorded this week. Start tracking to see your insights!");
+            }
+
+            console.log("[Analytics] Weekly summary successfully generated and timestamped.");
+        } catch (err) {
+            console.error("[Analytics] Error in summary engine:", err);
+        } finally {
+            this._summaryInProcess = false;
+        }
+    }
 };
 
 export default dataService;

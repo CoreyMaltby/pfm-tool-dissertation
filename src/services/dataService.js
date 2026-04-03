@@ -260,15 +260,17 @@ export const dataService = {
         const mode = await this.getStorageMode(userId);
 
         // Fetch lookup data
-        const [categories, accounts] = await Promise.all([
+        const [categories, accounts, budgets] = await Promise.all([
             this.fetchCategories(userId),
-            this.fetchAccounts(userId)
+            this.fetchAccounts(userId),
+            this.fetchBudgets(userId)
         ]);
 
         const processedTransactions = [];
         const merchants = await this.fetchMerchants();
 
         let currentAccounts = [...accounts];
+        const newlyCreatedBudgets = [];
 
         for (const row of rawRows) {
             let merchantId;
@@ -283,7 +285,6 @@ export const dataService = {
             }
 
             const cat = categories.find(c => c.name.toLowerCase() === row.category.toLowerCase()) || categories.find(c => c.name === 'General');
-            const acc = accounts.find(a => a.name.toLowerCase() === row.account.toLowerCase()) || accounts[0];
 
             let accountId;
             const accountName = row.account || 'Main Account';
@@ -320,9 +321,33 @@ export const dataService = {
             await db.transactions.bulkAdd(processedTransactions.map(tx => ({ ...tx, user_id: userId, synced: 1 })));
         }
 
+        const uniqueCategoryIds = [...new Set(processedTransactions.filter(tx => tx.amount < 0).map(tx => tx.category_id))];
+
+        for (const catId of uniqueCategoryIds) {
+            const hasBudget = budgets.some(b => b.category_id === catId);
+            if (!hasBudget) {
+                const category = categories.find(c => c.id === catId);
+                console.log(`[Import] Creating budget for category ID ${catId}.`);
+                await this.saveBudget({
+                    category_id: catId,
+                    amount: 0,
+                    is_monthly: true
+                }, userId);
+
+                if (category) newlyCreatedBudgets.push(category.name);
+            }
+        }
+
+        if (newlyCreatedBudgets.length > 0) {
+            const budgetList = newlyCreatedBudgets.join(', ');
+            const message = `New Budgets Created: We've added trackers for ${budgetList}. Head over to the Budgets page to set your spending limits!`;
+            await this.createNotification(userId, 'nudge', message);
+        }
+
         for (const tx of processedTransactions) {
             await this.adjustAccountBalance(tx.account_id, tx.amount, userId);
         }
+        
         return processedTransactions.length;
     },
 

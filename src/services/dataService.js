@@ -266,28 +266,49 @@ export const dataService = {
         ]);
 
         const processedTransactions = [];
+        const merchants = await this.fetchMerchants();
+
+        let currentAccounts = [...accounts];
 
         for (const row of rawRows) {
             let merchantId;
-            const existingMerchants = await this.fetchMerchants();
-            const match = existingMerchants.find(m => m.name.toLowerCase() === row.merchant.toLowerCase());
-            if (match) {
-                merchantId = match.id;
+            const merchantMatch = merchants.find(m => m.name.toLowerCase() === row.merchant.toLowerCase());
+
+            if (merchantMatch) {
+                merchantId = merchantMatch.id;
             } else {
-                const newMerchant = await this.addMerchant({ name: row.merchant }, userId);
-                merchantId = newMerchant.id;
+                const newM = await this.addMerchant({ name: row.merchant }, userId);
+                merchants.push(newM);
+                merchantId = newM.id;
             }
 
             const cat = categories.find(c => c.name.toLowerCase() === row.category.toLowerCase()) || categories.find(c => c.name === 'General');
             const acc = accounts.find(a => a.name.toLowerCase() === row.account.toLowerCase()) || accounts[0];
 
+            let accountId;
+            const accountName = row.account || 'Main Account';
+            const accountMatch = currentAccounts.find(a => a.name.toLowerCase() === accountName.toLowerCase());
+
+            if (accountMatch) {
+                accountId = accountMatch.id;
+            } else {
+                console.log('[Import] Account not found, creating new account:', row.account);
+                const newAcc = await this.addAccount({
+                    name: accountName,
+                    type: 'Checking',
+                    current_balance: 0
+                }, userId);
+
+                currentAccounts.push(newAcc);
+                accountId = newAcc.id;
+            }
+
             processedTransactions.push({
-                user_id: userId,
                 amount: parseFloat(row.amount),
                 description: row.description || '',
                 merchant_id: merchantId,
                 category_id: cat?.id,
-                account_id: acc?.id,
+                account_id: accountId,
                 created_at: new Date(row.date).toISOString()
             });
         }
@@ -296,7 +317,7 @@ export const dataService = {
             const { error } = await supabase.from('transactions').insert(processedTransactions);
             if (error) throw error;
         } else {
-            await db.transactions.bulkAdd(processedTransactions.map(tx => ({ ...tx, synced: 1 })));
+            await db.transactions.bulkAdd(processedTransactions.map(tx => ({ ...tx, user_id: userId, synced: 1 })));
         }
 
         for (const tx of processedTransactions) {

@@ -2,12 +2,12 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     BarChart3, PieChart, TrendingUp, Download, Plus, Filter,
     Zap, Loader2, Info, Activity, Grid3x3, RefreshCcw, FileImage,
-    FileJson, TrendingDown, AlertCircle, Target
+    FileJson, TrendingDown, AlertCircle, Target, CheckCircle2
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, BarChart, Bar,
-    PieChart as RePie, Pie, Cell, Legend, LineChart, Line, LabelList
+    PieChart as RePie, Pie, Cell, Legend, LineChart, Line
 } from 'recharts';
 import * as htmlToImage from 'html-to-image';
 import DashboardSidebar from "../components/DashboardSidebar";

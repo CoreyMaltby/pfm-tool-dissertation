@@ -13,11 +13,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
 import { dataService } from "../services/dataService";
 import AddTransactionForm from "../components/AddTransactionForm";
+import CSVUploadForm from "../components/CSVUploadForm";
 
 const ICON_MAP = { Utensils, Car, Smartphone, ShoppingBag, Wallet, Home, CreditCard, Coffee, Zap, TrendingUp };
 
 const DashboardTransactions = ({ session }) => {
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isCSVUploadOpen, setIsCSVUploadOpen] = useState(false);
 
     const [storageMode, setStorageMode] = useState('loading');
     const [cloudTransactions, setCloudTransactions] = useState([]);
@@ -148,7 +150,10 @@ const DashboardTransactions = ({ session }) => {
                         </p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl hover:opacity-90 transition-all text-xs">
+                        <button
+                            onClick={() => setIsCSVUploadOpen(true)}
+                            className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl hover:opacity-90 transition-all text-xs"
+                        >
                             <Upload size={18} /> Upload CSV
                         </button>
                         <button onClick={() => { setEditingTransaction(null); setIsFormOpen(true); }} className="flex items-center gap-2 px-6 py-3 bg-background-secondary text-white font-black rounded-xl border border-white/10 hover:scale-105 transition-all text-xs shadow-xl">
@@ -292,6 +297,16 @@ const DashboardTransactions = ({ session }) => {
                     editingTransaction={editingTransaction} // Pass data to edit
                 />
             )}
+
+            <CSVUploadForm
+                isOpen={isCSVUploadOpen}
+                onClose={() => setIsCSVUploadOpen(false)}
+                userId={userId}
+                onSuccess={(count) => {
+                    fetchTransactions();
+                    alert(`Successfully imported ${count} transactions!`);
+                }}
+            />
         </div>
     );
 };

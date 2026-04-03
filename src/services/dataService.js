@@ -256,6 +256,55 @@ export const dataService = {
         }
     },
 
+    async importTransactions(userId, rawRows) {
+        const mode = await this.getStorageMode(userId);
+
+        // Fetch lookup data
+        const [categories, accounts] = await Promise.all([
+            this.fetchCategories(userId),
+            this.fetchAccounts(userId)
+        ]);
+
+        const processedTransactions = [];
+
+        for (const row of rawRows) {
+            let merchantId;
+            const existingMerchants = await this.fetchMerchants();
+            const match = existingMerchants.find(m => m.name.toLowerCase() === row.merchant.toLowerCase());
+            if (match) {
+                merchantId = match.id;
+            } else {
+                const newMerchant = await this.addMerchant({ name: row.merchant }, userId);
+                merchantId = newMerchant.id;
+            }
+
+            const cat = categories.find(c => c.name.toLowerCase() === row.category.toLowerCase()) || categories.find(c => c.name === 'General');
+            const acc = accounts.find(a => a.name.toLowerCase() === row.account.toLowerCase()) || accounts[0];
+
+            processedTransactions.push({
+                user_id: userId,
+                amount: parseFloat(row.amount),
+                description: row.description || '',
+                merchant_id: merchantId,
+                category_id: cat?.id,
+                account_id: acc?.id,
+                created_at: new Date(row.date).toISOString()
+            });
+        }
+
+        if (mode === 'cloud') {
+            const { error } = await supabase.from('transactions').insert(processedTransactions);
+            if (error) throw error;
+        } else {
+            await db.transactions.bulkAdd(processedTransactions.map(tx => ({ ...tx, synced: 1 })));
+        }
+
+        for (const tx of processedTransactions) {
+            await this.adjustAccountBalance(tx.account_id, tx.amount, userId);
+        }
+        return processedTransactions.length;
+    },
+
     // Budgets
     async fetchBudgets(userId) {
         const mode = await this.getStorageMode(userId);

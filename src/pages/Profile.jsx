@@ -3,13 +3,15 @@
  */
 
 import React, { useEffect, useState } from "react"
-import { User, Lock, Bell, Trash2, Cloud, Save, Key, LayoutDashboard, Loader2, AlertTriangle, UserRoundIcon } from "lucide-react"
+import { User, Lock, Bell, Trash2, Cloud, Save, Key, LayoutDashboard, Loader2, AlertTriangle, Sparkles } from "lucide-react"
 import { dataService } from "../services/dataService";
+import { useSettingsStore } from "../store/useSettingsStore";
+import { supabase } from "../lib/supabaseClient";
 
 const uiTheme = {
     transition: "transition-all duration-300 ease-in-out",
     input: "w-full pl-4 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-main/20 focus:border-accent-main transition-all text-sm shadow-sm",
-    primaryAction: "inline-flex items-center gap-2 px-8 py-4 bg-accent-main text-white font-black rounded-xl shadow-md shadow-accent-main/30 hover:scale-105 transition-transform text-sm",
+    primaryAction: "inline-flex items-center gap-2 px-8 py-4 bg-accent-main text-white font-black rounded-xl shadow-md shadow-accent-main/30 hover:scale-105 transition-transform text-sm disabled:opacity-50",
 };
 
 // Sub-components
@@ -84,12 +86,10 @@ const AccountTab = ({ userId }) => {
                         <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={uiTheme.input} />
                     </div>
                 </div>
-
                 <div className="space-y-1.5 opacity-50">
                     <label className="text-gray-300 text-[10px] font-black uppercase tracking-widest ml-1">Email Address (Read Only)</label>
                     <input type="email" value={email} disabled className={uiTheme.input} />
                 </div>
-
                 <button type="submit" disabled={loading} className={uiTheme.primaryAction}>
                     {loading ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save Changes</>}
                 </button>
@@ -117,7 +117,18 @@ const SecurityTab = ({ userId }) => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
-    // Password update confirmation popup
+    useEffect(() => {
+        const checkStorage = async () => {
+            try {
+                const mode = await dataService.getStorageMode(userId);
+                setIsCloudStorage(mode === 'cloud');
+            } catch (error) {
+                console.error("Error fetching storage mode: ", error);
+            }
+        };
+        if (userId) checkStorage();
+    }, [userId]);
+
     const handlePasswordUpdate = async (e) => {
         e.preventDefault();
         if (newPassword !== confirmPassword) return alert("Passwords do not match.");
@@ -137,34 +148,12 @@ const SecurityTab = ({ userId }) => {
         }
     };
 
-    useEffect(() => {
-        const checkStorage = async () => {
-            try {
-                const mode = await dataService.getStorageMode(userId);
-                setIsCloudStorage(mode === 'cloud');
-            } catch (error) {
-                console.error("Error fetching storage mode: ", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (userId) checkStorage();
-    }, [userId]);
-
-    // Storage Migration
     const handleStorageConfirm = async () => {
         const targetMode = isCloudStorage ? "cloud" : "local";
-
-        const message = targetMode === "cloud"
-            ? "Switch to Cloud Storage? Your local data will be moved to our secure servers and deleted from this device."
-            : "Switch to Local Storage? Your cloud data will be moved into this device's Private Vault and deleted from the cloud.";
-
-        if (!window.confirm(message)) {
-            // Reset toggle if canceled
+        if (!window.confirm(`Switch to ${targetMode} storage? Data will be moved and deleted from the previous source.`)) {
             setIsCloudStorage(targetMode !== "cloud");
             return;
         }
-
         setIsMigrating(true);
         try {
             if (targetMode === 'cloud') {
@@ -172,26 +161,17 @@ const SecurityTab = ({ userId }) => {
             } else {
                 await dataService.migrateCloudToLocal(userId);
             }
-            alert(`Your data is now stored in ${targetMode} storage.`);
+            alert(`Migration complete: stored in ${targetMode}.`);
         } catch (error) {
-            alert(`Migration failed: ${error.message}. Your data has not been moved.`);
-            // Reverts to old method
+            alert(`Migration failed: ${error.message}`);
             setIsCloudStorage(targetMode !== "cloud");
         } finally {
             setIsMigrating(false);
         }
     };
 
-    if (loading) return (
-        <div className="flex flex-col items-center py-12 gap-4">
-            <Loader2 className="animate-spin text-accent-main" size={32} />
-            <p className="text-gray-400 text-xs font-bold uppercase">Verifying Storage Method...</p>
-        </div>
-    );
-
     return (
         <div className="space-y-10">
-            {/* Change Password Section */}
             <div>
                 <h3 className="text-xl font-bold text-white">Change Password</h3>
                 <form className="space-y-6 max-w-lg mt-6" onSubmit={handlePasswordUpdate}>
@@ -203,243 +183,175 @@ const SecurityTab = ({ userId }) => {
                         <label className="text-gray-300 text-[10px] font-black uppercase tracking-widest ml-1">Confirm New Password</label>
                         <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={uiTheme.input} required />
                     </div>
-
                     <button type="submit" disabled={loading} className={`${uiTheme.primaryAction} mt-4`}>
                         {loading ? <Loader2 className="animate-spin" size={18} /> : <><Key size={18} /> Update Password</>}
                     </button>
                 </form>
             </div>
 
-            {/* Privacy & Data Preference Section */}
             <div className="pt-12 border-t border-gray-700 space-y-6">
                 <div className="flex items-center gap-3">
-                    <Cloud className="text-accent-main mt-0.5 shrink-0" size={24} />
-                    <h3 className="text-xl font-bold text-white leading-tight">Privacy & Data Preference</h3>
+                    <Cloud className="text-accent-main" size={24} />
+                    <h3 className="text-xl font-bold text-white">Privacy & Data Preference</h3>
                 </div>
-
-                <div className="max-w-3xl space-y-6 text-sm text-gray-300">
-                    <p className="leading-relaxed">
-                        This tool utilizes a <strong className="text-white font-semibold">Hybrid-Storage Model</strong>.
-                        Data is moved between environments; moving it to one location removes it from the other.
-                    </p>
-
-                    <div className={`p-6 bg-white/5 rounded-[2rem] border ${isMigrating ? 'border-accent-main animate-pulse' : 'border-white/10'} max-w-lg space-y-6 transition-all`}>
-                        {/* TOGGLE ROW */}
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="space-y-0.5">
-                                <span className="text-white font-semibold flex items-center gap-2">
-                                    {isCloudStorage ? "Cloud Storage" : "Local Storage"}
-                                    {isMigrating && <span className="text-[10px] bg-accent-main/20 text-accent-main px-2 py-0.5 rounded-full uppercase font-black animate-pulse">Migrating...</span>}
-                                </span>
-                                <p className="text-xs text-gray-400">
-                                    {isCloudStorage ? "Active on all devices." : "Strictly on this device."}
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                disabled={isMigrating}
-                                onClick={() => setIsCloudStorage(!isCloudStorage)}
-                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isCloudStorage ? 'bg-accent-main' : 'bg-gray-700'} ${isMigrating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${isCloudStorage ? 'translate-x-5' : 'translate-x-0'}`} />
-                            </button>
+                <div className={`p-6 bg-white/5 rounded-[2rem] border ${isMigrating ? 'border-accent-main animate-pulse' : 'border-white/10'} max-w-lg space-y-6 transition-all`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <span className="text-white font-semibold">{isCloudStorage ? "Cloud Storage" : "Local Storage"}</span>
+                            <p className="text-xs text-gray-400">{isCloudStorage ? "Active on all devices." : "Strictly on this device."}</p>
                         </div>
-
-                        {/* CONFIRM ACTION */}
-                        <div className="pt-4 border-t border-white/5">
-                            <button
-                                onClick={handleStorageConfirm}
-                                disabled={isMigrating}
-                                className={`w-full py-3.5 text-[11px] font-black uppercase tracking-[0.15em] rounded-xl transition-all border flex items-center justify-center gap-2 
-                                    ${isMigrating
-                                        ? 'bg-accent-main/10 border-accent-main/20 text-accent-main'
-                                        : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-                            >
-                                {isMigrating ? <><Loader2 className="animate-spin" size={14} /> Processing Migration...</> : "Confirm & Migrate Data"}
-                            </button>
-                        </div>
+                        <button onClick={() => setIsCloudStorage(!isCloudStorage)} disabled={isMigrating} className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${isCloudStorage ? 'bg-accent-main' : 'bg-gray-700'}`}>
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${isCloudStorage ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
                     </div>
-
-                    {isMigrating && (
-                        <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl max-w-lg text-red-400">
-                            <AlertTriangle size={18} className="shrink-0" />
-                            <p className="text-[10px] font-bold uppercase leading-tight">
-                                Critical: Do not close your browser or refresh the page while migration is active.
-                            </p>
-                        </div>
-                    )}
+                    <button onClick={handleStorageConfirm} disabled={isMigrating} className="w-full py-3.5 bg-white/10 text-white text-[11px] font-black uppercase rounded-xl border border-white/10 hover:bg-white/20 transition-all">
+                        {isMigrating ? "Processing Migration..." : "Confirm & Migrate Data"}
+                    </button>
                 </div>
             </div>
         </div>
     );
 };
 
-const NotificationsTab = () => {
-    const [emailAlerts, setEmailAlerts] = useState(true);
-    const [inSiteAlerts, setinSiteAlerts] = useState(true);
+const NotificationsTab = ({ userId }) => {
+    const [prefs, setPrefs] = useState({ push: false, email: true, nudge: true, budget: true, security: true });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
-    // Confirmation popup
-    const handleNotificationsConfirm = () => {
-        const confirmed = window.confirm("Are you sure you want to update your notification preferences?");
+    useEffect(() => {
+        const loadPrefs = async () => {
+            const profile = await dataService.fetchProfile(userId);
+            if (profile?.notification_preferences) setPrefs(profile.notification_preferences);
+            setLoading(false);
+        };
+        if (userId) loadPrefs();
+    }, [userId]);
 
-        if (confirmed) {
-            // TODO: Database Logic
-            console.log("Notification preferences saved:", { emailAlerts, inSiteAlerts });
-            alert("Notification settings updated successfully.");
+    const handleToggle = (key) => setPrefs(prev => ({ ...prev, [key]: !prev[key] }));
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await dataService.updateProfile(userId, { notification_preferences: prefs });
+            alert("Notification settings updated.");
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            setSaving(false);
         }
     };
 
+    if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-accent-main" /></div>;
+
     return (
-        <div className="space-y-10">
-            {/* Notification Preferences Section */}
-            <div>
-                <h3 className="text-xl font-bold text-white">Notification Preferences</h3>
-                <p className="text-gray-400 text-sm mt-1 mb-6 max-w-2xl">
-                    Toggle between email and in-site alerts to keep yourself informed on budget thresholds, goal progress, and more.
-                </p>
-
-                <div className="space-y-4 max-w-xl">
-                    {/* Email Alerts Toggle */}
-                    <div className="flex items-center justify-between gap-4 p-5 bg-white/5 rounded-2xl border border-white/10">
-                        <div className="space-y-0.5">
-                            <span className="text-white font-semibold">Email Alerts</span>
-                            <p className="text-xs text-gray-400">Receive periodic budget summaries.</p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setEmailAlerts(!emailAlerts)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${emailAlerts ? 'bg-accent-main' : 'bg-gray-700'}`}
-                            role="switch"
-                            aria-checked={emailAlerts}
-                        >
-                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out ${emailAlerts ? 'translate-x-5' : 'translate-x-0'}`} />
+        <div className="space-y-6">
+            <h3 className="text-xl font-bold text-white">Notification Preferences</h3>
+            <div className="space-y-4 max-w-xl">
+                {Object.keys(prefs).map((key) => (
+                    <div key={key} className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/10">
+                        <span className="text-white font-semibold capitalize">{key} Alerts</span>
+                        <button onClick={() => handleToggle(key)} className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${prefs[key] ? 'bg-accent-main' : 'bg-gray-700'}`}>
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${prefs[key] ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                     </div>
-
-                    {/* In-Site Alerts Toggle */}
-                    <div className="flex items-center justify-between gap-4 p-5 bg-white/5 rounded-2xl border border-white/10">
-                        <div className="space-y-0.5">
-                            <span className="text-white font-semibold">In-Site Alerts</span>
-                            <p className="text-xs text-gray-400">Receive real-time positive nudges and budget notifications within the dashboard.</p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setinSiteAlerts(!inSiteAlerts)}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${inSiteAlerts ? 'bg-accent-main' : 'bg-gray-700'}`}
-                            role="switch"
-                            aria-checked={inSiteAlerts}
-                        >
-                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out ${inSiteAlerts ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </button>
-                    </div>
-
-                    <div className="pt-4 border-t border-white/5">
-                        <button
-                            onClick={handleNotificationsConfirm}
-                            className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all border border-white/10"
-                        >
-                            Confirm Preferences
-                        </button>
-                    </div>
-                </div>
+                ))}
+                <button onClick={handleSave} disabled={saving} className={uiTheme.primaryAction}>
+                    {saving ? <Loader2 className="animate-spin" size={18} /> : "Save Preferences"}
+                </button>
             </div>
         </div>
     );
 };
 
-const DashboardTab = () => {
-    const [showSafeToSpend, setShowSafeToSpend] = useState(true);
-    const [showSavingsGoals, setShowSavingsGoals] = useState(true);
+const DashboardTab = ({ userId }) => {
+    const { toggleTips, showContextualTips } = useSettingsStore();
+    const [uiPrefs, setUiPrefs] = useState({ showSafeToSpend: true, showSavingsGoals: true, showContextualTips: true });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
-    // Dashboard preferences save popup
-    const handleDashboardSave = () => {
-        if (window.confirm("Save dashboard display preferences?")) {
+    useEffect(() => {
+        const loadUiPrefs = async () => {
+            const profile = await dataService.fetchProfile(userId);
+            if (profile?.ui_preferences) setUiPrefs(profile.ui_preferences);
+            setLoading(false);
+        };
+        if (userId) loadUiPrefs();
+    }, [userId]);
+
+    const handleToggle = (key) => setUiPrefs(prev => ({ ...prev, [key]: !prev[key] }));
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await dataService.updateProfile(userId, { ui_preferences: uiPrefs });
+            // Sync Zustand store
+            if (uiPrefs.showContextualTips !== showContextualTips) toggleTips();
             alert("Dashboard layout updated.");
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            setSaving(false);
         }
     };
 
+    if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-accent-main" /></div>;
+
     return (
-        <div clasName="space-y-10">
-            {/* Header */}
-            <div>
-                <h3 className="text-xl font-bold text-white">Dashboard Display</h3>
-                <p className="text-gray-400 text-sm mt-1 mb-6 max-w-2xl">
-                    Customise which widgets are visible on your dashboard overview.
-                </p>
-
-                {/* Dsipaly Toggles */}
-                <div className="space-y-4 max-w-xl">
-                    <div className="flex items-center justify-between gap-4 p-5 bg-white/5 rounded-2xl border border-white/10">
-                        <div className="space-y-0.5">
-                            <span className="text-white font-semibold">Show Safe-to-Spend</span>
-                            <p className="text-xs text-gray-400">Display your daily spending allowance.</p>
-                        </div>
-                        <button onClick={() => setShowSafeToSpend(!showSafeToSpend)} className={`relative inline-flex h-6 w-11 rounded-full border-2 border-transparent transition-colors ${showSafeToSpend ? 'bg-accent-main' : 'bg-gray-700'}`}>
-                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${showSafeToSpend ? 'translate-x-5' : 'translate-x-0'}`} />
+        <div className="space-y-10"> {/* TYPO FIXED: clasName -> className */}
+            <h3 className="text-xl font-bold text-white">Dashboard Configuration</h3>
+            <div className="space-y-4 max-w-xl">
+                {['showSafeToSpend', 'showSavingsGoals', 'showContextualTips'].map((key) => (
+                    <div key={key} className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/10">
+                        <span className="text-white font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                        <button onClick={() => handleToggle(key)} className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${uiPrefs[key] ? 'bg-accent-main' : 'bg-gray-700'}`}>
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${uiPrefs[key] ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                     </div>
-
-                    <div className="flex items-center justify-between gap-4 p-5 bg-white/5 rounded-2xl border border-white/10">
-                        <div className="space-y-0.5">
-                            <span className="text-white font-semibold">Show Savings Goals</span>
-                            <p className="text-xs text-gray-400">Display progress bars for targets.</p>
-                        </div>
-                        <button onClick={() => setShowSavingsGoals(!showSavingsGoals)} className={`relative inline-flex h-6 w-11 rounded-full border-2 border-transparent transition-colors ${showSavingsGoals ? 'bg-accent-main' : 'bg-gray-700'}`}>
-                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${showSavingsGoals ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </button>
-                    </div>
-
-                    {/* Save */}
-                    <div className="pt-4 border-t border-white/5">
-                        <button onClick={handleDashboardSave} className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all border border-white/10">
-                            Save Dashboard View
-                        </button>
-                    </div>
-                </div>
+                ))}
+                <button onClick={handleSave} disabled={saving} className={uiTheme.primaryAction}>
+                    {saving ? <Loader2 className="animate-spin" size={18} /> : "Update Dashboard"}
+                </button>
             </div>
         </div>
-    )
+    );
 };
 
 // Tab categories selection rendered in the sidebar
 const tab_data = [
-    { name: "Account", icon: User, component: AccountTab },
-    { name: "Security & Privacy", icon: Lock, component: SecurityTab },
-    { name: "Notifications", icon: Bell, component: NotificationsTab },
-    { name: "Dashboard", icon: LayoutDashboard, component: DashboardTab },
+    { name: "Account", icon: User },
+    { name: "Security & Privacy", icon: Lock },
+    { name: "Notifications", icon: Bell },
+    { name: "Dashboard", icon: LayoutDashboard },
 ];
 
 // Main Component
 const ProfileSettings = ({ session }) => {
-    // State to manage active category
-    const [activeTab, setActiveTab] = useState(tab_data[0].name);
+    const [activeTab, setActiveTab] = useState("Account");
     const userId = session?.user?.id;
 
-    const components = {
-        "Account": <AccountTab userId={userId} />,
-        "Security & Privacy": <SecurityTab userId={userId} />,
-        "Notifications": <NotificationsTab />,
-        "Dashboard": <DashboardTab />
+    const renderTab = () => {
+        switch (activeTab) {
+            case "Account": return <AccountTab userId={userId} />;
+            case "Security & Privacy": return <SecurityTab userId={userId} />;
+            case "Notifications": return <NotificationsTab userId={userId} />;
+            case "Dashboard": return <DashboardTab userId={userId} />;
+            default: return null;
+        }
     };
 
     return (
-        <main className="w-full bg-background-tertiary min-h-screen py-12 md:py-16 px-6">
+        <main className="w-full bg-background-tertiary min-h-screen py-12 px-6">
             <div className="max-w-6xl mx-auto space-y-10">
-                {/* Header */}
-                <header className="text-center space-y-4">
-                    <h1 className="text-4xl md:text-5xl font-black text-white leading-tight">Profile Settings</h1>
+                <header className="text-center">
+                    <h1 className="text-4xl font-black text-white">Profile Settings</h1>
                 </header>
-
-                {/* Settings Container */}
-                <div className="bg-background-secondary rounded-3xl shadow-2xl border border-white/5 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
-                    {/* Sidebar Navigation */}
-                    <div className="w-full md:w-72 border-b md:border-b-0 md:border-r border-gray-700 p-4 space-y-2 bg-black/10">
+                <div className="bg-background-secondary rounded-3xl shadow-2xl border border-white/5 flex flex-col md:flex-row min-h-[600px] overflow-hidden">
+                    <div className="w-full md:w-72 border-r border-gray-700 p-4 space-y-2 bg-black/10">
                         {tab_data.map((tab) => (
                             <button
                                 key={tab.name}
                                 onClick={() => setActiveTab(tab.name)}
-                                className={`w-full flex items-center gap-3 px-6 py-4 rounded-xl text-sm font-bold transition-all ${activeTab === tab.name ? "bg-accent-main text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                                className={`w-full flex items-center gap-3 px-6 py-4 rounded-xl text-sm font-bold transition-all ${activeTab === tab.name ? "bg-accent-main text-white" : "text-gray-400 hover:text-white"}`}
                             >
                                 <tab.icon size={20} />
                                 <span>{tab.name}</span>
@@ -447,7 +359,7 @@ const ProfileSettings = ({ session }) => {
                         ))}
                     </div>
                     <div className="flex-1 p-8 md:p-12">
-                        {components[activeTab]}
+                        {renderTab()}
                     </div>
                 </div>
             </div>

@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import DashboardSidebar from "../components/DashboardSidebar";
+import LearningTip from "../components/LearningTip";
 import {
     PieChart, Plus, ChevronRight, BarChart3,
     Clock, ArrowUpRight, Wallet, Loader2
@@ -210,6 +211,11 @@ const DashboardOverview = ({ session }) => {
                         </div>
                     </div>
                 </header>
+
+                {/* Learning Tip */}
+                <section>
+                    <LearningTip />
+                </section>
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

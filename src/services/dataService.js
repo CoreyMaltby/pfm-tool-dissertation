@@ -347,7 +347,7 @@ export const dataService = {
         for (const tx of processedTransactions) {
             await this.adjustAccountBalance(tx.account_id, tx.amount, userId);
         }
-        
+
         return processedTransactions.length;
     },
 
@@ -389,20 +389,17 @@ export const dataService = {
     async saveBudget(budget, userId) {
         const mode = await this.getStorageMode(userId);
 
-        const payload = {
+        const budgetData = {
             user_id: userId,
             category_id: budget.category_id,
-            limit_amount: Number(budget.amount),
-            is_monthly: true
+            limit_amount: budget.amount,
+            is_monthly: budget.is_monthly ?? true
         };
 
         if (mode === 'cloud') {
-            const { data, error } = await supabase.from('budgets').upsert(payload).select();
-            if (error) throw error;
-            return data[0];
+            return await supabase.from('budgets').insert([budgetData]);
         } else {
-            const id = await db.budgets.put({ ...payload, synced: 1, updated_at: new Date().toISOString() });
-            return { ...payload, id };
+            return await db.budgets.add(budgetData);
         }
     },
 
@@ -1145,6 +1142,64 @@ export const dataService = {
                 `Activity Insight: You've recorded ${recentTxs.length} transactions in "${categoryName}" within the last 24 hours`
             );
         }
+    },
+
+    async getSmartBudgetSuggestions(userId) {
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+        const mode = await this.getStorageMode(userId);
+
+        let recentTxs = [];
+        if (mode === 'cloud') {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('amount, category_id, created_at, accounts!inner(user_id)')
+                .eq('accounts.user_id', userId)
+                .gte('created_at', ninetyDaysAgo)
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            recentTxs = data || [];
+        } else {
+            recentTxs = await db.transactions
+                .where('user_id').equals(userId)
+                .filter(tx => new Date(tx.created_at) >= new Date(ninetyDaysAgo))
+                .toArray();
+            recentTxs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        }
+
+        if (recentTxs.length === 0) return [];
+
+        // Range calculation
+        const firstTxDate = new Date(recentTxs[0].created_at);
+        const lastTxDate = new Date(recentTxs[recentTxs.length - 1].created_at);
+
+        const diffTime = Math.abs(lastTxDate - firstTxDate);
+        const diffDays = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1, 1);
+
+        const monthlyMultiplier = 30 / diffDays;
+
+        console.log(`[Smart Budget] Analysis Span: ${diffDays} days. Multiplier: ${monthlyMultiplier.toFixed(2)}x`);
+
+        // Aggregate spending by category
+        const totals = recentTxs.reduce((acc, tx) => {
+            if (tx.amount < 0) {
+                acc[tx.category_id] = (acc[tx.category_id] || 0) + Math.abs(tx.amount);
+            }
+            return acc;
+        }, {});
+
+        // Generate suggestions
+        const suggestions = Object.keys(totals).map(catId => {
+            const rawMonthlyAvg = totals[catId] * monthlyMultiplier;
+
+            return {
+                category_id: catId,
+                // Rounds to nearest 10
+                suggestedLimit: Math.ceil(rawMonthlyAvg / 10) * 10
+            };
+        });
+
+        return suggestions;
     }
 };
 

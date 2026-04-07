@@ -14,6 +14,7 @@ import { db } from "../lib/db";
 import { dataService } from "../services/dataService";
 import AddTransactionForm from "../components/AddTransactionForm";
 import CSVUploadForm from "../components/CSVUploadForm";
+import ContextualTip from "../components/ContextualTips";
 
 const ICON_MAP = { Utensils, Car, Smartphone, ShoppingBag, Wallet, Home, CreditCard, Coffee, Zap, TrendingUp };
 
@@ -161,6 +162,8 @@ const DashboardTransactions = ({ session }) => {
                         </button>
                     </div>
                 </header>
+
+                <ContextualTip category={["Other", "Security"]} />
 
                 <section className="bg-background-secondary rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
                     {/* Toolbar */}

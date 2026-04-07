@@ -4,6 +4,7 @@ import { CreditCard, Plus, Landmark, Wallet, Loader2, Settings2, Trash2, Trendin
 import { dataService } from "../services/dataService";
 import AddAccountForm from "../components/addAccountForm";
 import TransferFundsForm from "../components/TransferFundsForm";
+import ContextualTip from "../components/ContextualTips";
 
 const TYPE_ICONS = {
     Checking: Landmark,
@@ -66,6 +67,8 @@ const DashboardAccounts = ({ session }) => {
                         </button>
                     </div>
                 </header>
+
+                <ContextualTip category={["Interest", "Security"]} />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <section className="lg:col-span-2 space-y-6">

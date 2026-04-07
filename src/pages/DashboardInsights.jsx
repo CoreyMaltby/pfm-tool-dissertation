@@ -12,6 +12,7 @@ import {
 import * as htmlToImage from 'html-to-image';
 import DashboardSidebar from "../components/DashboardSidebar";
 import { dataService } from "../services/dataService";
+import ContextualTip from "../components/ContextualTips";
 
 const category_colours = ['#22c55e', '#3b82f6', '#a855f7', '#f59e0b', '#ef4444', '#06b6d4'];
 
@@ -306,6 +307,8 @@ const DashboardInsights = ({ session }) => {
                         </div>
                     </div>
                 </header>
+
+                <ContextualTip category="Financial Planning" />
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     <section className="space-y-4">

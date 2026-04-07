@@ -118,6 +118,186 @@ export const articles_data = [
         date: "2026-03-20",
         author: "Marcus Thorne",
         content: "If you have multiple debts, there are two main ways to attack them. The **Debt Snowball** method focuses on paying off the smallest balance first, regardless of interest rates. This gives you a quick psychological win. The **Debt Avalanche** method focuses on the debt with the highest interest rate first. This saves you the most money over time.\n\nThe Snowball is great for people who need motivation to keep going, while the Avalanche is best for those who want to be mathematically efficient. Whichever you choose, the most important rule is to keep making minimum payments on everything else so you don't damage your credit score. Persistence is the only way to become debt-free."
+    },
+    {
+        id: 13,
+        category: "Budgeting",
+        title: "Zero-Based Budgeting",
+        description: "Give every single pound a job before the month begins to eliminate 'lazy' money.",
+        readTime: "5 min",
+        date: "2026-03-21",
+        author: "Marcus Thorne",
+        content: "Zero-based budgeting is the practice of allocating all of your income to specific expenses, savings, or debt payments until there is £0 left over. This doesn't mean you have no money in your bank; it means every pound has a designated purpose. It is one of the most effective ways to prevent 'lifestyle creep' and ensure your money is working as hard as you are."
+    },
+    {
+        id: 14,
+        category: "Savings",
+        title: "The 1% Savings Challenge",
+        description: "Small incremental increases in your savings rate that you won't even notice.",
+        readTime: "3 min",
+        date: "2026-03-22",
+        author: "David Wilson",
+        content: "The 1% challenge is simple: increase your savings rate by just 1% of your income every month or quarter. If you currently save 5%, move to 6%. Because the change is so small, your daily lifestyle rarely needs to adjust, but over a year, you could more than double your savings rate through the power of incremental gains."
+    },
+    {
+        id: 15,
+        category: "Interest",
+        title: "Hunting for Hidden Fees",
+        description: "How to audit your accounts to ensure maintenance fees aren't eating your interest.",
+        readTime: "4 min",
+        date: "2026-03-23",
+        author: "Sarah Lee",
+        content: "Many legacy bank accounts carry monthly maintenance fees or low-balance penalties that can completely negate the interest you earn. Periodically auditing your account statements for 'Service Charges' or 'Admin Fees' is vital. In many cases, simply switching to a modern digital account or maintaining a minimum balance can save you £100+ per year."
+    },
+    {
+        id: 16,
+        category: "Other",
+        title: "The Subscription Audit",
+        description: "Stop paying for 'Zombie' subscriptions you no longer use or value.",
+        readTime: "4 min",
+        date: "2026-03-24",
+        author: "Alex Carter",
+        content: "Zombie subscriptions are recurring payments for services you've forgotten about. Audit your transaction history specifically for monthly 'Direct Debits.' If you haven't used a service in 30 days, cancel it. You can always resubscribe later, but 'ghost' payments are one of the biggest leaks in a modern household budget."
+    },
+    {
+        id: 17,
+        category: "Financial Planning",
+        title: "Understanding Opportunity Cost",
+        description: "Why every purchase isn't just about the price tag, but what else that money could do.",
+        readTime: "5 min",
+        date: "2026-03-25",
+        author: "Emily Johnson",
+        content: "Opportunity cost is the loss of other alternatives when one alternative is chosen. When you spend £1,000 on a holiday, the 'cost' isn't just the £1,000—it's also the potential interest that £1,000 could have earned in an ISA. Thinking in terms of opportunity cost helps you prioritize long-term wealth over short-term gratification."
+    },
+    {
+        id: 18,
+        category: "Security",
+        title: "The Danger of Public Wi-Fi",
+        description: "Why you should never check your banking app on coffee shop or airport networks.",
+        readTime: "3 min",
+        date: "2026-03-26",
+        author: "Alex Carter",
+        content: "Public Wi-Fi networks are often unencrypted, making it easy for hackers to perform 'Man-in-the-Middle' attacks to intercept your login credentials. If you must check your finances on the go, always use your mobile data (4G/5G) or a trusted VPN to ensure your private financial data remains encrypted and safe from prying eyes."
+    },
+    {
+        id: 19,
+        category: "Budgeting",
+        title: "Budget Buffers",
+        description: "Why your budget needs a 'Misc' category to handle the messy reality of life.",
+        readTime: "4 min",
+        date: "2026-03-27",
+        author: "John Doe",
+        content: "A rigid budget is a brittle budget. If every penny is accounted for with no wiggle room, a single slightly-higher utility bill can cause the whole system to fail. Adding a 'Buffer' or 'Misc' category—roughly 5% of your spending—acts as a shock absorber for your finances, keeping you on track even when life gets unpredictable."
+    },
+    {
+        id: 20,
+        category: "Other",
+        title: "The 30-Day Rule",
+        description: "The ultimate weapon against high-ticket impulse purchases.",
+        readTime: "4 min",
+        date: "2026-03-28",
+        author: "Dr. Aris Volkov",
+        content: "For any non-essential purchase over £100, implement the 30-day rule. Write the item and the price on a sticky note and put it on your fridge. If you still feel the same burning desire to own it 30 days later, buy it. In 80% of cases, the 'dopamine hit' of the idea wears off, and you'll realize you'd rather keep the cash."
+    },
+    {
+        id: 21,
+        category: "Security",
+        title: "The Anatomy of a Phishing Email",
+        description: "How to spot the subtle red flags of digital fraud before you click that link.",
+        readTime: "5 min",
+        date: "2026-03-29",
+        author: "Alex Carter",
+        content: "Phishing remains the most common form of cyberattack. Scammers often use 'spoofed' email addresses that look official but contain tiny errors, like 'support@bank-secure.com' instead of 'bank.com'. They use psychological triggers like urgency ('Your account is locked!') or curiosity ('You have a refund waiting') to bypass your logical thinking. Always hover over links to see the true destination and never provide sensitive data on a site you reached via an unsolicited email."
+    },
+    {
+        id: 22,
+        category: "Savings",
+        title: "Sinking Funds: Your Secret Weapon",
+        description: "How to save for big, predictable expenses without wrecking your monthly budget.",
+        readTime: "4 min",
+        date: "2026-03-30",
+        author: "Michael Brown",
+        content: "A sinking fund is money set aside for a specific purpose to be used at a later date. Unlike an emergency fund, which is for surprises, sinking funds are for known events like Christmas, car insurance, or annual holidays. By breaking these large costs into monthly 'installments' in your own savings account, you avoid the stress of a massive bill hitting you all at once. It transforms a £600 expense into a manageable £50 monthly contribution."
+    },
+    {
+        id: 23,
+        category: "Interest",
+        title: "APR vs EAR: What's the Difference?",
+        description: "Understanding the true cost of borrowing by decoding bank terminology.",
+        readTime: "6 min",
+        date: "2026-03-31",
+        author: "Sarah Lee",
+        content: "When you borrow money, you'll see APR (Annual Percentage Rate) and EAR (Equivalent Annual Rate). APR is the standard way to compare the cost of loans and credit cards, including interest and some fees. However, EAR is used for overdrafts and shows the interest you would pay if you remained overdrawn for a full year, including the effect of interest 'compounding' on interest. Always look at the EAR for a more accurate picture of how expensive an overdraft really is."
+    },
+    {
+        id: 24,
+        category: "Financial Planning",
+        title: "Why You Need a Pension Now",
+        description: "The incredible math behind starting your retirement savings in your 20s vs. your 40s.",
+        readTime: "7 min",
+        date: "2026-04-01",
+        author: "Marcus Thorne",
+        content: "The power of a pension lies in time and tax relief. In the UK, for every £80 you contribute, the government typically adds £20 in tax relief. Furthermore, many employers offer 'matching' contributions—this is effectively a pay rise that you only receive if you save for your future. Because of compound growth, £100 saved in your 20s can be worth significantly more than £500 saved in your 50s. Starting early is the single most important factor in a comfortable retirement."
+    },
+    {
+        id: 25,
+        category: "Security",
+        title: "Two-Factor Authentication (2FA)",
+        description: "Why a password alone is no longer enough to keep your money safe.",
+        readTime: "3 min",
+        date: "2026-04-02",
+        author: "Alex Carter",
+        content: "2FA adds a second layer of security to your accounts. Even if a hacker steals your password, they cannot access your account without the second 'factor'—usually a code sent to your phone or generated by an app. App-based authenticators (like Google Authenticator) are more secure than SMS codes, which can be intercepted via 'SIM swapping.' Enabling 2FA on your email and banking apps is the most effective way to prevent unauthorized access."
+    },
+    {
+        id: 26,
+        category: "Interest",
+        title: "The Cost of Minimum Payments",
+        description: "How paying only the minimum on credit cards keeps you in debt for decades.",
+        readTime: "5 min",
+        date: "2026-04-03",
+        author: "Sarah Lee",
+        content: "Minimum payments are designed to cover the interest and only a tiny fraction of the principal balance. If you have a £3,000 balance at 19% interest and only pay the minimum, it could take you over 25 years to pay it off and cost you thousands in interest. By paying even £20 more than the minimum each month, you can shave years off the debt and keep more of your hard-earned money in your own pocket."
+    },
+    {
+        id: 27,
+        category: "Budgeting",
+        title: "The Cash Stuffing Method",
+        description: "A tactile way to manage your spending and stop overdrawing your accounts.",
+        readTime: "5 min",
+        date: "2026-04-04",
+        author: "Laura Davis",
+        content: "Cash stuffing, or the 'Envelope System,' involves withdrawing your discretionary spending money in cash and dividing it into physical envelopes for categories like 'Groceries' or 'Social.' When the envelope is empty, you stop spending in that category for the month. This creates a physical 'friction' that digital spending lacks, making it much harder to overspend. It is a powerful reset for anyone struggling with mindless tapping on card machines."
+    },
+    {
+        id: 28,
+        category: "Savings",
+        title: "Pay Yourself First",
+        description: "The psychological shift that ensures your savings goals are always met.",
+        readTime: "4 min",
+        date: "2026-04-05",
+        author: "Michael Brown",
+        content: "Most people save what is left over at the end of the month, which is often nothing. 'Paying yourself first' reverses this. You treat your savings goal like a mandatory bill that must be paid as soon as your salary hits your account. By automating a transfer to your savings on payday, you learn to live on the remainder. This simple habit change is the foundation of almost every successful financial plan."
+    },
+    {
+        id: 29,
+        category: "Security",
+        title: "Secure Your Physical Documents",
+        description: "Identity theft isn't just digital; protect your paper trail.",
+        readTime: "4 min",
+        date: "2026-04-06",
+        author: "Alex Carter",
+        content: "While we focus on digital security, paper documents like bank statements, utility bills, and tax returns are goldmines for identity thieves. Invest in a cross-cut shredder to dispose of any mail containing your name, address, or account details. When traveling, keep your passport and sensitive documents in a locked safe. A clean digital footprint is useless if your physical bin provides a roadmap to your identity."
+    },
+    {
+        id: 30,
+        category: "Other",
+        title: "Lifestyle Creep: The Silent Killer",
+        description: "Why earning more doesn't always lead to having more.",
+        readTime: "6 min",
+        date: "2026-04-07",
+        author: "Dr. Aris Volkov",
+        content: "Lifestyle creep occurs when your standard of living improves as your income rises. That pay rise meant for savings instead goes toward a more expensive car or frequent dining out. While enjoying your success is important, failing to 'capture' that extra income into investments or debt repayment means you never actually get ahead financially. The key to wealth is maintaining a standard of living that is one step below your current income level."
     }
 ];
 

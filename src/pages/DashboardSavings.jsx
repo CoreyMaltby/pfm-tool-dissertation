@@ -7,6 +7,7 @@ import { Plus, Target, TrendingUp, PiggyBank, Loader2, Settings2, Trash2, Receip
 import { dataService } from "../services/dataService";
 import AddGoalForm from "../components/addGoalForm";
 import AddToSavingsForm from "../components/addToSavingsForm";
+import ContextualTip from "../components/ContextualTips";
 
 const DashboardSavings = ({ session }) => {
     const [goals, setGoals] = useState([]);
@@ -89,6 +90,8 @@ const DashboardSavings = ({ session }) => {
                         </button>
                     </div>
                 </header>
+
+                <ContextualTip category="Savings" />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Active goals */}

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { dataService } from "../services/dataService";
 import AddBudgetForm from "../components/addBudgetForm";
+import ContextualTip from "../components/ContextualTips";
 
 const icon_map = { Utensils, Car, Smartphone, ShoppingBag, Wallet, CreditCard, Coffee, Zap, TrendingUp };
 
@@ -201,6 +202,8 @@ const DashboardBudgets = ({ session }) => {
                         </div>
                     </div>
                 )}
+
+                <ContextualTip category="Budgeting" />
 
                 {/* Main */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -4,7 +4,7 @@ import { use } from 'react';
 
 export const dataService = {
     _summaryInProcess: false,
-    _monthlySumaryInProcess: false,
+    _monthlySummaryInProcess: false,
 
     // Storage Preferences
     async getStorageMode(userId) {
@@ -725,7 +725,8 @@ export const dataService = {
     async fetchProfile(userId) {
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, email, storage_mode, notification_preferences, last_login_at, last_summary_at, last_monthly_summary_at')
+            .select('first_name, last_name, email, storage_mode, notification_preferences, ui_preferences, last_login_at, last_summary_at, last_monthly_summary_at')
+            .eq('id', userId)
             .single();
         if (error) throw error;
         return data;

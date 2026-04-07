@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { db } from "../lib/db";
 import { dataService } from "../services/dataService";
+import { useSettingsStore } from "../store/useSettingsStore";
 
 const category_colours = ['#22c55e', '#3b82f6', '#a855f7', '#f59e0b', '#ef4444', '#06b6d4'];
 
@@ -91,6 +92,7 @@ const BudgetCard = ({ budget }) => {
 const DashboardOverview = ({ session }) => {
     const [storageMode, setStorageMode] = useState('loading');
     const [cloudData, setCloudData] = useState({ transactions: [], budgets: [], accounts: [] });
+    const { showSafeToSpend, setSafeToSpend, setTips } = useSettingsStore();
     const userId = session?.user?.id;
 
     // Local Queries
@@ -104,6 +106,12 @@ const DashboardOverview = ({ session }) => {
             const mode = await dataService.getStorageMode(userId);
             setStorageMode(mode);
 
+            const profile = await dataService.fetchProfile(userId);
+            if (profile?.ui_preferences) {
+                setSafeToSpend(profile.ui_preferences.showSafeToSpend);
+                setTips(profile.ui_preferences.showContextualTips);
+            }
+
             if (mode === 'cloud') {
                 const [txs, budg, accs] = await Promise.all([
                     dataService.fetchRecentTransactions(userId),
@@ -112,8 +120,8 @@ const DashboardOverview = ({ session }) => {
                 ]);
                 setCloudData({ transactions: txs, budgets: budg, accounts: accs });
             }
-        } catch (err) {
-            console.error("Fetch error:", err);
+        } catch (error) {
+            console.error("Fetch error:", error);
         }
     };
 
@@ -204,12 +212,14 @@ const DashboardOverview = ({ session }) => {
                             </p>
                         </div>
 
-                        <div className="flex-1 md:flex-none text-right bg-background-secondary px-6 py-4 rounded-[2rem] border border-white/5 shadow-2xl transition-all hover:border-white/10">
-                            <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-1">Safe to Spend</p>
-                            <p className="text-2xl font-black text-accent-main tracking-tight">
-                                £{safeToSpend.toFixed(2)} <span className="text-[10px] text-gray-500">/ day</span>
-                            </p>
-                        </div>
+                        {showSafeToSpend && (
+                            <div className="flex-1 md:flex-none text-right bg-background-secondary px-6 py-4 rounded-[2rem] border border-white/5 shadow-2xl transition-all hover:border-white/10 animate-in zoom-in duration-300">
+                                <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-1">Safe to Spend</p>
+                                <p className="text-2xl font-black text-accent-main tracking-tight">
+                                    £{safeToSpend.toFixed(2)} <span className="text-[10px] text-gray-500">/ day</span>
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </header>
 

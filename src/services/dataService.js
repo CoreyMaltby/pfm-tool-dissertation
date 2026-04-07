@@ -1200,6 +1200,59 @@ export const dataService = {
         });
 
         return suggestions;
+    },
+
+    async getSavingsStreak(userId) {
+        const mode = await this.getStorageMode(userId);
+        const budgets = await this.fetchBudgets(userId);
+
+        if (!budgets || budgets.length === 0) return 0;
+
+        // Calculates daily limit based on total budget
+        const totalMonthlyLimit = budgets.reduce((acc, b) => acc + (Number(b.limit_amount) || 0), 0);
+        const now = new Date();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const dailyLimit = totalMonthlyLimit / daysInMonth;
+
+        // Fetch transactions from last 30 days
+        const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)).toISOString();
+        let txs = [];
+
+        if (mode === 'cloud') {
+            const { data } = await supabase.from('transactions')
+                .select('amount, created_at, accounts!inner(user_id)')
+                .eq('accounts.user_id', userId)
+                .gte('created_at', thirtyDaysAgo);
+            txs = data || [];
+        } else {
+            txs = await db.transactions.where('user_id').equals(userId)
+                .filter(t => t.created_at >= thirtyDaysAgo).toArray();
+        }
+
+        // Group transactions
+        const dailySpend = txs.reduce((acc, t) => {
+            const date = new Date(t.created_at).toISOString().split('T')[0];
+            if (t.amount < 0) {
+                acc[date] = (acc[date] || 0) + Math.abs(t.amount);
+            }
+            return acc;
+        }, {});
+
+        // Calculate streak
+        let streak = 0;
+        for (let i = 1; i <= 30; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const spend = dailySpend[dateStr] || 0;
+
+            if (spend <= dailyLimit) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+        return streak
     }
 };
 

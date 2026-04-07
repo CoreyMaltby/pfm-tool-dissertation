@@ -6,6 +6,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import DashboardSidebar from "../components/DashboardSidebar";
 import LearningTip from "../components/LearningTip";
+import StreakWidget from "../components/StreakWidget";
 import {
     PieChart, Plus, ChevronRight, BarChart3,
     Clock, ArrowUpRight, Wallet, Loader2
@@ -212,10 +213,14 @@ const DashboardOverview = ({ session }) => {
                     </div>
                 </header>
 
-                {/* Learning Tip */}
-                <section>
-                    <LearningTip />
-                </section>
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div className="xl:col-span-2">
+                        <LearningTip />
+                    </div>
+                    <div className="xl:col-span-1">
+                        <StreakWidget userId={userId} />
+                    </div>
+                </div>
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

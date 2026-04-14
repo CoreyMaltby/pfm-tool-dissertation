@@ -273,35 +273,28 @@ const DashboardInsights = ({ session }) => {
     }, [trendData, categoryData, varianceData, filteredTransactions]);
 
     return (
-        <div className="flex bg-background-tertiary min-h-screen">
+        <div className="flex flex-col md:flex-row bg-background-tertiary min-h-screen">
             <DashboardSidebar session={session} />
-            <main className="flex-1 p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
-                <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <main className="flex-1 p-4 sm:p-6 lg:p-10 space-y-8 animate-in fade-in duration-500">
+                <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-black text-white tracking-tight">Financial Insights</h1>
-                        <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">Engine: {selectedTemplate === "Custom View" ? "User Defined" : "Standard Template"}</p>
+                        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Financial Insights</h1>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         {selectedTemplate !== "Custom View" && (
-                            <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-white/5">
+                            <div className="flex bg-[#1a1a1a] p-1 rounded-xl border border-white/5 overflow-x-auto">
                                 {['7d', '30d', 'MTD', '1Y'].map(t => (
-                                    <button key={t} onClick={() => setTimeFrame(t)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${timeFrame === t ? 'bg-accent-main text-white' : 'text-gray-500 hover:text-white'}`}>{t}</button>
+                                    <button key={t} onClick={() => setTimeFrame(t)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all whitespace-nowrap ${timeFrame === t ? 'bg-accent-main text-white' : 'text-gray-500 hover:text-white'}`}>{t}</button>
                                 ))}
                             </div>
                         )}
-                        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-accent-secondary text-white font-black rounded-xl text-xs shadow-lg hover:scale-105 active:scale-95"><Plus size={18} /> Create Custom</button>
-                        <div className="relative group">
-                            <button className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl transition-all text-xs shadow-lg">
-                                <Download size={18} /> Export Data
-                            </button>
-                            <div className="absolute top-full right-0 w-56 pt-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto transition-all z-[100]">
+                        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-4 py-3 bg-accent-secondary text-white font-black rounded-xl text-[10px] sm:text-xs shadow-lg hover:scale-105 active:scale-95"><Plus size={16} /> Create Custom</button>
+                        <div className="relative group flex-shrink-0">
+                            <button className="flex items-center gap-2 px-4 py-3 bg-white text-black font-black rounded-xl text-[10px] sm:text-xs shadow-lg"><Download size={16} /> Export</button>
+                            <div className="absolute top-full right-0 w-48 pt-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto transition-all z-[100]">
                                 <div className="bg-background-secondary border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
-                                    <button onClick={handleDownloadPNG} className="w-full px-5 py-4 text-left text-[11px] font-black uppercase tracking-widest text-white hover:bg-white/5 flex items-center gap-3 border-b border-white/5 transition-colors">
-                                        <FileImage size={16} className="text-accent-main" /> Save as Image
-                                    </button>
-                                    <button className="w-full px-5 py-4 text-left text-[11px] font-black uppercase tracking-widest text-white hover:bg-white/5 flex items-center gap-3 transition-colors">
-                                        <FileJson size={16} className="text-accent-main" /> Raw CSV Data
-                                    </button>
+                                    <button onClick={handleDownloadPNG} className="w-full px-5 py-4 text-left text-[11px] font-black uppercase text-white hover:bg-white/5 flex items-center gap-3 border-b border-white/5"><FileImage size={14} className="text-accent-main" /> PNG Image</button>
+                                    <button className="w-full px-5 py-4 text-left text-[11px] font-black uppercase text-white hover:bg-white/5 flex items-center gap-3"><FileJson size={14} className="text-accent-main" /> JSON Data</button>
                                 </div>
                             </div>
                         </div>
@@ -310,21 +303,18 @@ const DashboardInsights = ({ session }) => {
 
                 <ContextualTip category="Financial Planning" />
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    <section className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
+                    <section className="space-y-4 lg:sticky lg:top-8 h-fit">
                         <div className="bg-background-secondary rounded-3xl p-6 border border-white/10 space-y-6 shadow-2xl">
                             <div className="flex items-center gap-2 text-accent-main px-2"><Filter size={18} /><h2 className="text-[10px] font-black uppercase tracking-widest">Visual Engine</h2></div>
-                            <nav className="space-y-2">
+                            <nav className="grid grid-cols-2 lg:grid-cols-1 gap-2">
                                 {templates.map((temp) => (
-                                    <button key={temp.name} onClick={() => setSelectedTemplate(temp.name)} className={`w-full flex flex-col items-start gap-1 px-6 py-4 rounded-2xl transition-all ${selectedTemplate === temp.name ? "bg-accent-main text-white shadow-xl scale-[1.02]" : "text-gray-400 hover:bg-white/5"}`}>
-                                        <div className="flex items-center gap-3"><temp.icon size={16} /><span className="text-[11px] font-black uppercase tracking-widest">{temp.name}</span></div>
+                                    <button key={temp.name} onClick={() => setSelectedTemplate(temp.name)} className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl transition-all ${selectedTemplate === temp.name ? "bg-accent-main text-white shadow-xl scale-[1.02]" : "text-gray-400 hover:bg-white/5"}`}>
+                                        <temp.icon size={16} /><span className="text-[10px] font-black uppercase tracking-tight">{temp.name}</span>
                                     </button>
                                 ))}
                                 {selectedTemplate === "Custom View" && (
-                                    <button onClick={() => setSelectedTemplate("Spending Trend")} className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl bg-white/10 text-white border border-white/10 animate-pulse hover:bg-red-500/20 transition-all">
-                                        <RefreshCcw size={16} className="text-accent-main" />
-                                        <span className="text-[11px] font-black uppercase tracking-widest">Exit Custom View</span>
-                                    </button>
+                                    <button onClick={() => setSelectedTemplate("Spending Trend")} className="col-span-2 lg:col-span-1 flex items-center gap-3 px-4 py-4 rounded-2xl bg-white/10 text-white border border-white/10 animate-pulse"><RefreshCcw size={16} className="text-accent-main" /><span className="text-[10px] font-black uppercase tracking-tight">Exit Custom</span></button>
                                 )}
                             </nav>
                         </div>
@@ -332,117 +322,62 @@ const DashboardInsights = ({ session }) => {
                         {/* Quick Stats Widget */}
                         <div className="bg-background-secondary rounded-3xl p-6 border border-white/10 shadow-xl">
                             <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-6 flex items-center gap-2"><Info size={14} className="text-accent-main" /> Snapshot</p>
-                            <div className="space-y-5">
-                                <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                                    <span className="text-[11px] text-gray-400 font-bold uppercase">Average</span>
-                                    <span className="text-sm font-black text-white">£{(trendData.length > 0 ? trendData.reduce((a, b) => a + b.amount, 0) / trendData.length : 0).toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[11px] text-gray-400 font-bold uppercase">Filtered Transactions</span>
-                                    <span className="text-sm font-black text-accent-main">{filteredTransactions.length}</span>
-                                </div>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center border-b border-white/5 pb-2"><span className="text-[10px] text-gray-400 font-bold uppercase">Average</span><span className="text-xs font-black text-white">£{(trendData.length > 0 ? trendData.reduce((a, b) => a + b.amount, 0) / trendData.length : 0).toFixed(2)}</span></div>
+                                <div className="flex justify-between items-center"><span className="text-[10px] text-gray-400 font-bold uppercase">Matches</span><span className="text-xs font-black text-accent-main">{filteredTransactions.length}</span></div>
                             </div>
                         </div>
                     </section>
 
-                    <section className="lg:col-span-3 space-y-8">
-                        <div ref={chartRef} className="bg-background-secondary rounded-[2.5rem] p-10 border border-white/10 h-[550px] flex flex-col shadow-2xl relative">
-                            <h2 className="text-2xl font-black text-white mb-10 tracking-tight">{selectedTemplate}</h2>
+                    <section className="lg:col-span-3 space-y-6 md:space-y-8">
+                        <div ref={chartRef} className="bg-background-secondary rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 border border-white/10 h-[400px] md:h-[550px] flex flex-col shadow-2xl relative">
+                            <h2 className="text-xl md:text-2xl font-black text-white mb-6 md:mb-10 tracking-tight">{selectedTemplate}</h2>
                             <div className="flex-1 w-full min-h-0 relative">
-                                {isLoading ? <div className="h-full flex items-center justify-center text-gray-500 gap-3"><Loader2 className="animate-spin" /></div> : (<ResponsiveContainer width="100%" height="100%">
-                                    {selectedTemplate === "Custom View" ? (
-                                        customConfig.type === 'Area' ? (
+                                {isLoading ? <div className="h-full flex items-center justify-center text-gray-500 gap-3"><Loader2 className="animate-spin" /></div> : (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        {selectedTemplate === "Category Mix" ? (
+                                            <RePie>
+                                                <Pie data={categoryData} dataKey="value" cx="50%" cy="50%" outerRadius="80%" label={({ name }) => name} stroke="none">
+                                                    {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
+                                                </Pie>
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px', border: 'none' }} />
+                                            </RePie>
+                                        ) : selectedTemplate === "Spending Heatmap" ? (
+                                            <BarChart data={heatmapData} layout="vertical" margin={{ left: 10 }}>
+                                                <XAxis type="number" hide />
+                                                <YAxis dataKey="day" type="category" axisLine={false} tickLine={false} tick={{ fill: '#fff', fontSize: 10 }} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px', border: 'none' }} />
+                                                <Bar dataKey="value" radius={[0, 10, 10, 0]}>
+                                                    {heatmapData.map((entry, index) => <Cell key={index} fill={entry.value > 500 ? '#ef4444' : entry.value > 100 ? '#f59e0b' : '#22c55e'} />)}
+                                                </Bar>
+                                            </BarChart>
+                                        ) : (
                                             <AreaChart data={trendData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                                                 <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
                                                 <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
-                                                <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fill="#22c55e" fillOpacity={0.15} />
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px', border: 'none' }} />
+                                                <Area type="monotone" dataKey="amount" stroke="#22c55e" fill="#22c55e" fillOpacity={0.1} />
                                             </AreaChart>
-                                        ) : customConfig.type === 'Line' ? (
-                                            <LineChart data={trendData}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
-                                                <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
-                                                <Line type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
-                                            </LineChart>
-                                        ) : (
-                                            <BarChart data={trendData}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                                <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
-                                                <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => [`£${v.toFixed(2)}`, 'Spent']} />
-                                                <Bar dataKey="amount" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                                            </BarChart>
-                                        )
-                                    ) : selectedTemplate === "Spending Trend" ? (
-                                        <AreaChart data={trendData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                            <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
-                                            <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
-                                            <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={4} fill="#22c55e" fillOpacity={0.15} />
-                                        </AreaChart>
-                                    ) : selectedTemplate === "Daily Line" ? (
-                                        <LineChart data={trendData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                            <XAxis dataKey="date" tick={{ fill: '#fff', fontSize: 10 }} />
-                                            <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(v) => `£${v}`} />
-                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} />
-                                            <Line type="stepAfter" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
-                                        </LineChart>
-                                    ) : selectedTemplate === "Category Mix" ? (
-                                        <RePie>
-                                            <Pie data={categoryData} dataKey="value" cx="50%" cy="45%" outerRadius={120} label={({ name, value }) => `${name}: £${value.toFixed(0)}`} stroke="none">
-                                                {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
-                                            </Pie>
-                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} />
-                                            <Legend verticalAlign="bottom" />
-                                        </RePie>
-                                    ) : selectedTemplate === "Spending Heatmap" ? (
-                                        <BarChart data={heatmapData} layout="vertical" margin={{ left: 40 }}>
-                                            <XAxis type="number" hide />
-                                            <YAxis dataKey="day" type="category" axisLine={false} tickLine={false} tick={{ fill: '#fff', fontWeight: 'bold' }} />
-                                            <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} formatter={(v) => `£${v.toFixed(2)}`} />
-                                            <Bar dataKey="value" radius={[0, 10, 10, 0]}>
-                                                {heatmapData.map((entry, index) => (
-                                                    <Cell key={index} fill={entry.value > 500 ? '#ef4444' : entry.value > 100 ? '#f59e0b' : '#22c55e'} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    ) : (
-                                        <BarChart data={varianceData} barGap={12}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                                            <XAxis dataKey="name" tick={{ fill: '#fff', fontSize: 10 }} />
-                                            <YAxis tick={{ fill: '#fff', fontSize: 10 }} tickFormatter={(val) => `£${val}`} />
-                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderRadius: '12px' }} labelStyle={{ color: '#fff' }} />
-                                            <Legend verticalAlign="top" align="right" />
-                                            <Bar dataKey="Allocated" fill="#334155" radius={[6, 6, 0, 0]} />
-                                            <Bar dataKey="Actual" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                                        </BarChart>
-                                    )}
-                                </ResponsiveContainer>
+                                        )}
+                                    </ResponsiveContainer>
                                 )}
                             </div>
                         </div>
 
                         {/* Recommendation Card */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                             {insightsCalc.map((insight, idx) => (
-                                <div key={idx} className="bg-background-secondary border border-white/10 p-6 rounded-[2rem] hover:scale-[1.02] transition-all group relative overflow-hidden">
+                                <div key={idx} className="bg-background-secondary border border-white/10 p-5 rounded-[2rem] hover:border-accent-main/30 transition-all group relative overflow-hidden">
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className={`p-3 rounded-2xl bg-white/5 ${insight.color}`}>
-                                            <insight.icon size={20} />
-                                        </div>
+                                        <div className={`p-3 rounded-2xl bg-white/5 ${insight.color}`}><insight.icon size={20} /></div>
                                         <Zap size={14} className="text-white/10 group-hover:text-accent-main transition-colors" />
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">{insight.title}</p>
-                                        <h3 className="text-xl font-black text-white">{insight.value}</h3>
+                                        <h3 className="text-lg font-black text-white">{insight.value}</h3>
                                         <p className="text-[10px] text-gray-500 font-bold leading-tight">{insight.desc}</p>
                                     </div>
-                                    <div className={`absolute -bottom-4 -right-4 w-12 h-12 blur-2xl opacity-20 bg-current ${insight.color}`}></div>
                                 </div>
                             ))}
                         </div>

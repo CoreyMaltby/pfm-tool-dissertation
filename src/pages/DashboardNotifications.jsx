@@ -54,10 +54,10 @@ const DashboardNotifications = ({ session }) => {
 
 
     return (
-        <div className="flex bg-background-tertiary min-h-screen">
+        <div className="flex flex-col md:flex-row bg-background-tertiary min-h-screen">
             <DashboardSidebar session={session} />
 
-            <main className="flex-1 p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
+            <main className="flex-1 p-4 sm:p-6 lg:p-10 space-y-8 animate-in fade-in duration-500">
                 {/* Header */}
                 <header className="flex justify-between items-end">
                     <h1 className="text-4xl font-black text-white tracking-tight">Notifications</h1>
@@ -69,7 +69,7 @@ const DashboardNotifications = ({ session }) => {
                 </header>
 
                 {/* Main Content */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
                     {/* Notification Feed */}
                     <section className="xl:col-span-2 bg-background-secondary rounded-[2rem] shadow-2xl border border-white/5 overflow-hidden">

@@ -253,7 +253,7 @@ const DashboardOverview = ({ session }) => {
                     </section>
 
                     {/* Expense Chart */}
-                    <section className="bg-background-secondary rounded-3xl p-8 border border-white/5 shadow-2xl">
+                    <section className="bg-background-secondary rounded-3xl p-6 sm:p-8 border border-white/5 shadow-2xl">
                         <h2 className="text-sm font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2 text-accent-main"><PieChart size={16} /> Expense Breakdown</h2>
                         <div className="h-80 w-full min-h-0 relative">
                             {isLoading ? <div className="h-full flex items-center justify-center text-gray-500 text-[10px] font-bold uppercase tracking-widest animate-pulse">Syncing...</div> : (
@@ -262,18 +262,29 @@ const DashboardOverview = ({ session }) => {
                                         <Pie
                                             data={categoryData}
                                             dataKey="value"
-                                            nameKey="name"
-                                            cx="50%" cy="45%"
-                                            innerRadius={0}
-                                            outerRadius={100}
-                                            stroke="#121212"
-                                            strokeWidth={3}
-                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                            cx="50%"
+                                            cy="50%"
+                                            outerRadius="85%"
+                                            stroke="none"
+                                            paddingAngle={0}
                                         >
                                             {categoryData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
                                         </Pie>
-                                        <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: 'none', borderRadius: '12px' }} />
-                                        <Legend iconType="circle" verticalAlign="bottom" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', color: '#fff' }} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#1a1a1a', border: 'none', borderRadius: '12px' }}
+                                            itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                                        />
+                                        <Legend
+                                            iconType="circle"
+                                            verticalAlign="bottom"
+                                            align="center"
+                                            formatter={(value, entry) => (
+                                                <span className="text-white text-[10px] font-black uppercase tracking-widest ml-1">
+                                                    {value}: £{entry.payload.value.toFixed(0)}
+                                                </span>
+                                            )}
+                                            wrapperStyle={{ paddingTop: '20px' }}
+                                        />
                                     </RePie>
                                 </ResponsiveContainer>
                             )}

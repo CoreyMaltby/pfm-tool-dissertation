@@ -12,15 +12,15 @@ import { supabase } from "../lib/supabaseClient";
 
 const uiTheme = {
     transition: "transition-all duration-300 ease-in-out",
-    input: "w-full pl-4 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-main/20 focus:border-accent-main transition-all text-sm shadow-sm text-black",
-    primaryAction: "inline-flex items-center gap-2 px-8 py-4 bg-accent-main text-black font-black rounded-xl shadow-md shadow-accent-main/30 hover:scale-105 transition-transform text-sm disabled:opacity-50",
+    input: "w-full pl-4 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-accent-main/20 transition-all text-sm shadow-sm text-black",
+    primaryAction: "inline-flex items-center gap-2 px-8 py-4 bg-accent-main text-black font-black rounded-xl shadow-md hover:scale-105 transition-transform text-xs uppercase tracking-widest",
 };
 
 const Toggle = ({ enabled, onChange, label, description, disabled = false }) => (
     <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/10 group hover:border-white/20 transition-all">
-        <div className="space-y-0.5 pr-4">
+        <div className="space-y-0.5 pr-4 text-left">
             <span className="text-white font-bold text-sm capitalize">{label}</span>
-            {description && <p className="text-xs text-gray-500">{description}</p>}
+            {description && <p className="text-[10px] text-gray-500 font-bold uppercase">{description}</p>}
         </div>
         <button
             type="button"
@@ -66,29 +66,29 @@ const AccountTab = ({ userId }) => {
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-accent-main" /></div>;
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-accent-main rounded-full flex items-center justify-center font-black text-black text-3xl shadow-2xl uppercase">
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500 flex flex-col items-center">
+            <div className="flex flex-col items-center text-center gap-4">
+                <div className="w-24 h-24 bg-accent-main rounded-full flex items-center justify-center font-black text-black text-4xl shadow-2xl uppercase">
                     {profile.firstName.charAt(0)}{profile.lastName.charAt(0) || "U"}
                 </div>
-                <div>
-                    <h3 className="text-xl font-bold text-white">Identity</h3>
-                    <p className="text-gray-400 text-sm">{profile.email}</p>
+                <div className="min-w-0">
+                    <h3 className="text-xl font-bold text-white uppercase tracking-tight">Personal Identity</h3>
+                    <p className="text-gray-400 text-sm font-medium">{profile.email}</p>
                 </div>
             </div>
 
-            <form className="space-y-6 max-w-xl" onSubmit={handleSave}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+            <form className="space-y-6 w-full max-w-xl mx-auto" onSubmit={handleSave}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 text-left">
                         <label className="text-gray-400 text-[10px] font-black uppercase tracking-widest ml-1">First Name</label>
-                        <input type="text" value={profile.firstName} onChange={e => setProfile({...profile, firstName: e.target.value})} className={uiTheme.input} />
+                        <input type="text" value={profile.firstName} onChange={e => setProfile({ ...profile, firstName: e.target.value })} className={uiTheme.input} />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 text-left">
                         <label className="text-gray-400 text-[10px] font-black uppercase tracking-widest ml-1">Last Name</label>
-                        <input type="text" value={profile.lastName} onChange={e => setProfile({...profile, lastName: e.target.value})} className={uiTheme.input} />
+                        <input type="text" value={profile.lastName} onChange={e => setProfile({ ...profile, lastName: e.target.value })} className={uiTheme.input} />
                     </div>
                 </div>
-                <button type="submit" disabled={saving} className={uiTheme.primaryAction}>
+                <button type="submit" disabled={saving} className={`${uiTheme.primaryAction} w-full justify-center`}>
                     {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save Changes</>}
                 </button>
             </form>
@@ -128,22 +128,22 @@ const SecurityTab = ({ userId }) => {
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-accent-main" /></div>;
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                    <Cloud className="text-accent-main" size={24} />
-                    <h3 className="text-xl font-bold text-white">Hybrid-Storage Engine</h3>
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500 flex flex-col items-center text-center">
+            <div className="space-y-6 w-full max-w-xl">
+                <div className="flex flex-col items-center gap-3">
+                    <Cloud className="text-accent-main" size={32} />
+                    <h3 className="text-xl font-bold text-white uppercase tracking-tight">Hybrid-Storage Engine</h3>
                 </div>
-                <div className={`p-6 bg-white/5 rounded-[2rem] border ${isMigrating ? 'border-accent-main animate-pulse' : 'border-white/10'} max-w-lg space-y-6`}>
+                <div className={`p-6 bg-white/5 rounded-[2rem] border ${isMigrating ? 'border-accent-main animate-pulse' : 'border-white/10'} space-y-6`}>
                     <Toggle
                         label={isCloudStorage ? "Cloud Storage Enabled" : "Local Storage Only"}
-                        description={isCloudStorage ? "Data is avaliable across devices." : "Data is stored on this device.."}
+                        description={isCloudStorage ? "Data is synced across your devices." : "Data is restricted to this device vault."}
                         enabled={isCloudStorage}
                         onChange={setIsCloudStorage}
                         disabled={isMigrating}
                     />
                     <button onClick={handleMigration} disabled={isMigrating} className="w-full py-4 bg-white/10 text-white text-[11px] font-black uppercase tracking-widest rounded-xl border border-white/10 hover:bg-white/20 transition-all flex items-center justify-center gap-2">
-                        {isMigrating ? "Syncing..." : "Confirm & Sync"}
+                        {isMigrating ? "Synchronizing Vault..." : "Confirm & Apply Sync"}
                     </button>
                 </div>
             </div>
@@ -176,7 +176,7 @@ const NotificationsTab = ({ userId }) => {
     if (!prefs) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-accent-main" /></div>;
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500 flex flex-col items-center text-center">
             <h3 className="text-xl font-bold text-white">Alert Preferences</h3>
             <div className="space-y-4 max-w-xl">
                 {Object.keys(prefs).map((key) => (
@@ -236,7 +236,7 @@ const DashboardTab = ({ userId }) => {
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-accent-main" /></div>;
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500 flex flex-col items-center text-center">
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">Dashboard Layout</h3>
                 {syncing && <div className="flex items-center gap-2 text-[10px] font-black text-accent-main uppercase tracking-widest animate-pulse"><Loader2 className="animate-spin" size={12} /> Syncing...</div>}
@@ -285,31 +285,41 @@ const ProfileSettings = ({ session }) => {
     };
 
     return (
-        <main className="w-full bg-background-tertiary min-h-screen py-12 px-6">
-            <div className="max-w-6xl mx-auto space-y-10">
+        <main className="w-full bg-background-tertiary min-h-screen py-10 px-4 sm:py-12 sm:px-6">
+            <div className="max-w-4xl mx-auto space-y-10">
                 <header className="text-center space-y-2">
-                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Settings</h1>
+                    <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tighter uppercase">Settings</h1>
                 </header>
 
-                <div className="bg-background-secondary rounded-[2.5rem] shadow-2xl border border-white/5 flex flex-col md:flex-row min-h-[600px] overflow-hidden">
-                    <nav className="w-full md:w-72 border-r border-white/5 p-6 space-y-2 bg-black/10">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.name}
-                                onClick={() => setActiveTab(tab.name)}
-                                className={`w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-sm font-bold transition-all ${activeTab === tab.name ? "bg-accent-main text-black shadow-lg shadow-accent-main/20" : "text-gray-500 hover:text-white"}`}
-                            >
-                                <tab.icon size={20} />
-                                <span>{tab.name}</span>
-                            </button>
-                        ))}
+                <div className="bg-background-secondary rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden flex flex-col min-h-[600px]">
+                    <nav className="w-full bg-black/20 border-b border-white/5 p-4 sm:p-6">
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.name}
+                                    onClick={() => setActiveTab(tab.name)}
+                                    className={`
+                                        flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-4 
+                                        px-4 py-4 sm:px-6 sm:py-5 rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all
+                                        ${activeTab === tab.name
+                                            ? "bg-accent-main text-black shadow-xl shadow-accent-main/10 scale-[1.02]"
+                                            : "text-gray-500 hover:bg-white/5 hover:text-white"
+                                        }
+                                    `}
+                                >
+                                    <tab.icon size={18} className={activeTab === tab.name ? "text-black" : "text-gray-500"} />
+                                    <span>{tab.name}</span>
+                                </button>
+                            ))}
+                        </div>
                     </nav>
-                    <div className="flex-1 p-8 md:p-12 overflow-y-auto">
+
+                    <div className="flex-1 p-6 sm:p-10 lg:p-12 overflow-y-auto">
                         {renderTab()}
                     </div>
                 </div>
-            </div>
-        </main>
+            </div >
+        </main >
     );
 };
 

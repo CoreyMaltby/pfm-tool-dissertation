@@ -28,14 +28,14 @@ const features = [
         description: "Choose between local-only storage or cloud synchronization for multi-device access.",
         icon: ShieldCheck,
         colour: "bg-green-100 text-accent-main",
-        placeholder: "[Hybrid Storage Preview]" //TODO: Replace with actual preview image or component
+        image: <img src="/assets/screenshots/storage-sync.png" alt="Hybrid Sync" className="rounded-lg shadow-md" />
     },
     {
         title: "Financial Literacy",
         description: "Embedded contextual tooltips and guides to help you interpret your data and improve financial understanding..",
         icon: GraduationCap,
         colour: "bg-blue-100 text-blue-600",
-        placeholder: "[Financial Literacy Preview]", //TODO: Replace with actual preview image or component
+        image: <img src="/assets/screenshots/learning-hub.png" alt="Learning Hub" className="rounded-lg shadow-md" />,
         reverse: true
     },
     {
@@ -43,17 +43,17 @@ const features = [
         description: "The system uses positive nudges to encourage healthy spending habits instead of triggers that cause guilt.",
         icon: Zap,
         colour: "bg-purple-100 text-purple-600",
-        placeholder: "[Positive Notifications Preview]" //TODO: Replace with actual preview image or component
+        image: <img src="/assets/screenshots/notifications-feed.png" alt="Notification Alerts" className="rounded-lg shadow-md" />
     }
 ]
 
 // Renders individual feature on their own row.
 const FeatureRow = ({ feature }) => {
-    const { title, description, icon: Icon, colour, placeholder, reverse } = feature;
+    const { title, description, icon: Icon, colour, image, reverse } = feature;
     return (
         <div className={`flex flex-col md:flex-row ${reverse ? 'md:flex-row-reverse' : ''} items-center gap-10 ${uiTheme.transition}`}>
             <div className={`flex-1 w-full aspect-video ${uiTheme.card} flex items-center justify-center`}>
-                <span className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">{placeholder}</span>
+                <span className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">{image}</span>
             </div>
             <div className="flex-1 space-y-3">
                 <div className={`w-10 h-10 ${colour} rounded-lg flex items-center justify-center ${uiTheme.transition}`}>
@@ -70,7 +70,7 @@ const FeatureRow = ({ feature }) => {
 
 const Home = () => {
     // TODO: Replace with actual authentication state from context or global state management
-    const isAuthenticated = false; // Placeholder for authentication state
+    const isAuthenticated = false; // image for authentication state
     return (
         <main className="flex flex-col w-full bg-background-main">
             {/* HERO SECTION: Welcome & Dashboard Preview
@@ -79,7 +79,7 @@ const Home = () => {
                 <div className="max-w-5xl w-full flex flex-col items-center gap-12">
                     <div className="relative w-full max-w-4xl mx-auto group">
                         <div className="relative aspect-video bg-gray-50 rounded-xl border border-gray-200 shadow-2xl flex items-center justify-center">
-                            <LayoutDashboard size={80} className="opacity-20 text-gray-400" />
+                            <img src="/assets/screenshots/dashboard-main.png" alt="Dashboard Preview" className="rounded-lg shadow-2xl" />
                         </div>
                     </div>
                     <h1 className="text-2xl md:text-4xl font-black text-text-tertiary">
@@ -118,8 +118,8 @@ const Home = () => {
                     </div>
                     {/* Image of security features */}
                     <div className="aspect-square bg-white/5 rounded-xl border-8 border-white/5 flex items-center justify-center">
-                    {/* TODO: Replace with actual security image or component */}
-                        <span className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">[Security Image]</span> 
+                        {/* TODO: Replace with actual security image or component */}
+                        <img src="/assets/screenshots/security-privacy.png" alt="Security and Privacy" className="rounded-lg shadow-md" />
                     </div>
                 </div>
             </section>

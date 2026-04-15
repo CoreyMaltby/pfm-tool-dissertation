@@ -280,7 +280,7 @@ const DashboardOverview = ({ session }) => {
                                             align="center"
                                             formatter={(value, entry) => (
                                                 <span className="text-white text-[10px] font-black uppercase tracking-widest ml-1">
-                                                    {value}: £{entry.payload.value.toFixed(0)}
+                                                    {value}: £{(entry.payload?.value || 0).toFixed(0)}
                                                 </span>
                                             )}
                                             wrapperStyle={{ paddingTop: '20px' }}

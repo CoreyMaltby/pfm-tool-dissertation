@@ -46,7 +46,7 @@ const Signup = () => {
             alert(error.message);
             setLoading(false);
         } else {
-            alert("Signup Successfull! Please check your email for a verification link.")
+            alert("Signup Successfull!")
             navigate("/login");
         }
     };

@@ -37,6 +37,7 @@ const AccountTab = ({ userId }) => {
     const [profile, setProfile] = useState({ firstName: "", lastName: "", email: "" });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         const load = async () => {
@@ -61,6 +62,38 @@ const AccountTab = ({ userId }) => {
             });
             alert("Account Information Updated");
         } catch (err) { alert(err.message); } finally { setSaving(false); }
+    };
+
+    const handleDeleteData = async () => {
+        if (!window.confirm("Permanently delete all financial records? This cannot be undone.")) return;
+        setIsDeleting(true);
+        try {
+            await dataService.deleteAllUserData(userId);
+            alert("All financial data has been cleared.");
+            window.location.reload();
+        } catch (err) {
+            alert("Delete failed: " + err.message);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!window.confirm("WARNING: This will permanently delete your account and all associated data. This action is irreversible. Continue?")) return;
+
+        setIsDeleting(true);
+        try {
+            await dataService.deleteAllUserData(userId);
+            await dataService.deleteAccount(userId);
+
+            alert("Account successfully deleted.");
+            await supabase.auth.signOut();
+            window.location.href = '/';
+        } catch (err) {
+            alert("Account deletion failed: " + err.message);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-accent-main" /></div>;
@@ -92,6 +125,30 @@ const AccountTab = ({ userId }) => {
                     {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save Changes</>}
                 </button>
             </form>
+
+            <div className="pt-12 border-t border-white/5 space-y-6 w-full max-w-xl">
+                <div className="flex items-center gap-2 text-red-500 justify-center">
+                    <AlertTriangle size={18} />
+                    <h4 className="text-sm font-black uppercase tracking-widest">Danger Zone</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                        onClick={handleDeleteData}
+                        disabled={isDeleting}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600/10 text-red-400 border border-red-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
+                    >
+                        <Trash2 size={16} /> Wipe All Data
+                    </button>
+                    <button
+                        onClick={handleDeleteAccount}
+                        disabled={isDeleting}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-900/20 disabled:opacity-50"
+                    >
+                        <Trash2 size={16} /> Delete Account
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

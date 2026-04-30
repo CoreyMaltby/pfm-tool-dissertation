@@ -1,8 +1,8 @@
 # PFM Tool - Personal Finance Management Dashboard
 
-A Privacy-First, Local-First Personal Finance Management (PFM) application developed as part of a Level 6 Computing Dissertation at SOuthampton Solent University. The tool addresses the "Budgeting Trap" (the psychological tendency to view a remaining balance as a "license to spend") by reframing static balances into dynamic behavioral nudges.
+A Privacy-First, Local-First Personal Finance Management (PFM) application developed as part of a Level 6 Computing Dissertation at Southampton Solent University. The tool addresses the "Budgeting Trap" (the psychological tendency to view a remaining balance as a "license to spend") by reframing static balances into dynamic behavioural nudges.
 
-This application was evaluated in a usability survey and recieved a System Usability Scale (SUS) score of 85 (Grade A).
+This application was evaluated in a usability survey and received a System Usability Scale (SUS) score of 85 (Grade A).
 
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=flat&logo=react)
 ![Vite](https://img.shields.io/badge/Vite-6.0.0-646CFF?style=flat&logo=vite)

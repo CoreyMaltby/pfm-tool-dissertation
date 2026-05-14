@@ -174,11 +174,19 @@ const DashboardInsights = ({ session }) => {
         const groups = filteredTransactions
             .filter(t => t.amount < 0)
             .reduce((acc, t) => {
-                const date = new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-                acc[date] = (acc[date] || 0) + Math.abs(t.amount);
+                const txDate = new Date(t.created_at);
+                const isoDate = txDate.toISOString().slice(0, 10);
+                acc[isoDate] = (acc[isoDate] || 0) + Math.abs(t.amount);
                 return acc;
             }, {});
-        return Object.keys(groups).map(date => ({ date, amount: groups[date] }));
+
+        return Object.entries(groups)
+            .map(([isoDate, amount]) => ({ isoDate, amount }))
+            .sort((a, b) => new Date(a.isoDate) - new Date(b.isoDate))
+            .map(item => ({
+                date: new Date(item.isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                amount: item.amount,
+            }));
     }, [filteredTransactions]);
 
     const categoryData = useMemo(() => {
